@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from "react";
 
 const TopNav: React.FC = () => {
@@ -6,7 +7,14 @@ const TopNav: React.FC = () => {
 			{/* Logo Area */}
 			<div className="flex items-center gap-3">
 				{/* Placeholder for Unloque Logo */}
-				<div className="w-8 h-8 rounded bg-linear-to-br from-blue-500 to-orange-400"></div>
+				<div className="">
+					<Image
+						src={"/unloquelogo.png"}
+						width={24}
+						height={24}
+						alt="unloquelogo"
+					/>
+				</div>
 				<span className="text-2xl font-bold text-gray-900 tracking-tight">
 					Unloque
 				</span>
