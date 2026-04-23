@@ -2,8 +2,16 @@ import React from "react";
 
 const Navbar = () => {
 	return (
-		<div className="bg-blue-700 w-full py-3">
-			<p className="text-white text-2xl">TechIVision</p>
+		<div className="shadow-2xl w-full py-5 flex items-center justify-between px-10">
+			<div>
+				<p className="text-black font-semibold text-2xl">Unloque</p>
+			</div>
+
+			<div>
+				<button>
+					<p>Help</p>
+				</button>
+			</div>
 		</div>
 	);
 };

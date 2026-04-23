@@ -1,4 +1,3 @@
-import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import React from "react";
 
@@ -7,79 +6,102 @@ const Homepage = () => {
 		<div className="min-h-screen flex flex-col">
 			<Navbar />
 
-			<main className=" flex grow flex-col md:flex-row justify-between items-start max-w-7xl  mx-auto p-8 gap-16  min-h-[70vh]">
-				{/* Left Section - Login Area */}
-				<section className="flex-1 w-full flex flex-col items-center mt-8">
-					{/* Header with bottom border */}
-					<div className="w-full border-b border-gray-400 pb-2 mb-20">
-						<h1 className="text-4xl md:text-5xl font-light text-gray-900 tracking-wide">
-							Welcome to Unloque!
-						</h1>
-					</div>
+			<main className="flex flex-col md:flex-row justify-center items-center max-w-6xl mx-auto p-8 gap-12 md:gap-24 min-h-[75vh]">
+				{/* Left Section - Login Form */}
+				<section className="flex-1 w-full max-w-112.5">
+					<h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome!</h1>
+					<p className="text-lg text-gray-900 mb-8">
+						To get started, please log in to your account.
+					</p>
 
-					{/* Login Controls */}
-					<div className="w-full max-w-100 flex flex-col items-center gap-8">
-						<button
-							type="button"
-							className="w-full bg-[#12a4b6] hover:bg-[#0f8c9b] text-white text-2xl font-medium py-3 px-8 rounded-full transition-colors duration-200 shadow-sm"
-						>
-							Log In
-						</button>
+					<form className="flex flex-col gap-5">
+						{/* Email Input */}
+						<div className="flex flex-col gap-2">
+							<label
+								htmlFor="email"
+								className="text-sm text-gray-900 font-medium"
+							>
+								Organization Email
+							</label>
+							<input
+								type="email"
+								id="email"
+								className="w-full border border-gray-500 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] transition-shadow"
+							/>
+						</div>
 
+						{/* Password Input */}
+						<div className="flex flex-col gap-2">
+							<label
+								htmlFor="password"
+								className="text-sm text-gray-900 font-medium"
+							>
+								Password
+							</label>
+							<input
+								type="password"
+								id="password"
+								className="w-full border border-gray-500 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] transition-shadow"
+							/>
+						</div>
+
+						{/* Forgot Password */}
+						<div className="flex justify-end">
+							<button
+								type="button"
+								className="text-[#8c1c1c] text-sm font-bold hover:underline"
+							>
+								Forgot Password?
+							</button>
+						</div>
+
+						{/* Login Button */}
 						<button
-							type="button"
-							className="text-gray-800 text-lg hover:underline bg-transparent border-none cursor-pointer"
+							type="submit"
+							className="mt-2 bg-[#0f0f0f] hover:bg-black text-white font-semibold py-3 px-15 rounded-full w-max transition-colors cursor-pointer"
 						>
-							Forgot Password
+							Login
 						</button>
-					</div>
+					</form>
 				</section>
 
-				{/* Right Section - Announcement Sidebar */}
-				<aside className="w-full md:w-100 flex flex-col mt-8">
-					{/* Sidebar Header with bottom border */}
-					<div className="border-b border-gray-400 pb-2 mb-6 w-full">
-						<h2 className="text-3xl font-light text-gray-900 tracking-wide">
-							Announcement
-						</h2>
-					</div>
-
-					{/* Announcement Box */}
-					<div className="border border-gray-600 p-8 flex flex-col gap-6 text-center text-gray-800 bg-white shadow-sm">
-						<div className="inline-block mx-auto">
-							<h3 className="text-xl font-light border-b border-gray-400 pb-1">
-								Welcome, Admin!
-							</h3>
-						</div>
-
-						<p className="leading-relaxed text-sm">
-							We are pleased to inform you that each of you will be receiving a
-							unique Employee ID and password. This will allow you to log in to
-							our companys website easily.
-						</p>
-
-						{/* Instructions Divider */}
-						<div className="text-gray-400 tracking-[0.2em] flex items-center justify-center gap-3 text-xl font-light my-2">
-							&gt;&gt;&gt;
-							<span className="text-[#cc0000] font-bold tracking-normal text-lg">
+				{/* Right Section - Announcement Card */}
+				<aside className="flex-1 w-full max-w-112.5">
+					{/* Card Container with soft shadow */}
+					<div className="flex flex-col rounded-xl overflow-hidden shadow-[0_15px_50px_-12px_rgba(0,0,0,0.15)]">
+						{/* Top Teal Half */}
+						<div className="bg-[#00abc0] p-8 text-white">
+							<h2 className="text-2xl font-semibold mb-3 border-b border-white/60 pb-2">
+								Announcement
+							</h2>
+							<p className="text-sm leading-relaxed mb-6 font-medium">
+								We are pleased to inform you that each of you will be receiving
+								a unique Employee ID and password. This will allow you to log in
+								to our companys website easily.
+							</p>
+							<button
+								type="button"
+								className="bg-[#0f0f0f] hover:bg-black text-white text-sm font-semibold py-2 px-8 rounded-full transition-colors"
+							>
 								Instructions
-							</span>
-							&lt;&lt;&lt;
+							</button>
 						</div>
 
-						<p className="leading-relaxed text-sm">
-							Stay informed on system updates and new functionalities here.
-						</p>
-
-						<p className="leading-relaxed text-sm mt-4">
-							Note: If you have any problems with your account. Please contact
-							your IT department.
-						</p>
+						{/* Bottom White Half */}
+						<div className="bg-white p-8">
+							<p className="text-gray-900 font-bold text-sm leading-relaxed mb-6">
+								Stay informed on system updates and new functionalities here.
+							</p>
+							<div className="text-xs text-gray-700 leading-relaxed">
+								<span className="font-bold text-gray-900">Note:</span>
+								<br />
+								If you have any problems with your account. Please contact your
+								IT department.
+							</div>
+						</div>
 					</div>
 				</aside>
 			</main>
-
-			<Footer />
 		</div>
 	);
 };
