@@ -1,20 +1,26 @@
-import React from "react";
+"use client";
 
-const Sidebar: React.FC = () => {
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const Sidebar = () => {
+	const pathname = usePathname(); // Gets the current URL path
+
 	const navItems = [
-		"Programs",
-		"News",
-		"Map Data",
-		"Settings",
-		"Support & Help Center",
+		{ name: "Home", path: "/dashboard" },
+		{ name: "Programs", path: "/programs" },
+		{ name: "News", path: "/news" },
+		{ name: "Map Data", path: "/map-data" },
+		{ name: "Settings", path: "/settings" },
+		{ name: "Support & Help Center", path: "/support" },
 	];
 
 	return (
-		<aside className="w-64 bg-white shadow-lg flex flex-col h-full z-10">
+		<aside className="w-64 bg-white shadow-lg flex flex-col h-screen z-10">
 			{/* User Profile Section */}
 			<div className="bg-[#00abc0] flex flex-col items-center py-10 px-4">
 				<div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-inner">
-					{/* Simple SVG icon for user */}
 					<svg
 						className="w-10 h-10 text-gray-400"
 						fill="none"
@@ -34,25 +40,33 @@ const Sidebar: React.FC = () => {
 				</span>
 			</div>
 
-			{/* Navigation Links */}
+			{/* Navigation Links using Next.js Link */}
 			<nav className="flex-1 mt-6">
-				<ul>
-					<li className="bg-[#00abc0] text-white px-6 py-3 font-semibold cursor-pointer">
-						Home
-					</li>
-					{navItems.map((item) => (
-						<li
-							key={item}
-							className="px-6 py-3 text-gray-500 hover:bg-gray-50 hover:text-gray-800 cursor-pointer font-medium transition-colors"
-						>
-							{item}
-						</li>
-					))}
+				<ul className="flex flex-col">
+					{navItems.map((item) => {
+						// Check if the current URL matches the link's path
+						const isActive = pathname === item.path;
+
+						return (
+							<li key={item.name}>
+								<Link
+									href={item.path}
+									className={`block px-6 py-4 font-semibold transition-colors ${
+										isActive
+											? "bg-[#00abc0] text-white"
+											: "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+									}`}
+								>
+									{item.name}
+								</Link>
+							</li>
+						);
+					})}
 				</ul>
 			</nav>
 
 			{/* Logout Button */}
-			<button className="bg-[#b83232] text-white py-4 px-6 text-left font-semibold hover:bg-red-800 transition-colors w-full">
+			<button className="bg-[#b83232] text-white py-4 px-6 text-left font-semibold hover:bg-red-800 transition-colors w-full mt-auto">
 				Logout
 			</button>
 		</aside>
