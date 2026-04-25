@@ -1,4 +1,8 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { getPrograms } from "@/app/services/programService";
+import type { Program } from "@/app/types/program";
 
 // --- Reusable Program Card Component ---
 interface ProgramCardProps {
@@ -93,6 +97,28 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 
 // --- Main Programs Page Component ---
 const Programs: React.FC = () => {
+	// 1. Set up state to hold the data, loading status, and potential errors
+	const [programs, setPrograms] = useState<Program[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	// 2. Fetch data when the component mounts
+	useEffect(() => {
+		const fetchPrograms = async () => {
+			try {
+				const data = await getPrograms();
+				setPrograms(data);
+			} catch (err) {
+				console.error("Error fetching programs:", err);
+				setError("Failed to load programs.");
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchPrograms();
+	}, []);
+
 	return (
 		<div className="flex flex-col gap-8 pb-12 w-full max-w-250">
 			{/* Header Section */}
@@ -160,22 +186,25 @@ const Programs: React.FC = () => {
 					</span>
 				</div>
 
-				{/* Grid Container for Cards */}
+				{/* Status Messages */}
+				{isLoading && <p className="text-gray-500">Loading programs...</p>}
+				{error && <p className="text-red-500">{error}</p>}
+				{!isLoading && !error && programs.length === 0 && (
+					<p className="text-gray-500">No active programs found.</p>
+				)}
+
+				{/* 3. Map over the fetched programs to render the cards */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-					<ProgramCard
-						title="DOST-SEI JLSS 2026"
-						subtitle="Junior Level Science Scholarship"
-						applicationCount="50,023"
-						startDate="03/01/2026"
-						dueDate="03/31/2026"
-					/>
-					<ProgramCard
-						title="DOST Undergraduate 2026"
-						subtitle="RA 7687 / Merit Scholarship / RA 10612"
-						applicationCount="15,023"
-						startDate="03/01/2026"
-						dueDate="03/31/2026"
-					/>
+					{programs.map((program) => (
+						<ProgramCard
+							key={program.id}
+							title={program.name}
+							subtitle={program._category}
+							startDate={new Date(program.createdAt).toLocaleDateString()}
+							dueDate={new Date(program._deadline).toLocaleDateString()}
+							applicationCount="0"
+						/>
+					))}
 				</div>
 			</div>
 		</div>
