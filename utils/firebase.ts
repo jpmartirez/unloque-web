@@ -4,12 +4,13 @@ import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_STORAGE_BUCKET!,
-  messagingSenderId: process.env.NEXT_PUBLIC_MESSAGING_SENDER_ID!,
-  appId: process.env.NEXT_PUBLIC_APP_ID!,
+    apiKey: 'AIzaSyBnYYU3V1dLiSWyuAdysmE_CWPhcEYSzSc',
+    appId: '1:77901567813:web:cfbdd44a91c84ed316502c',
+    messagingSenderId: '77901567813',
+    projectId: 'unloque',
+    authDomain: 'unloque.firebaseapp.com',
+    storageBucket: 'unloque.firebasestorage.app',
+    measurementId: 'G-X08N3W6WZB',
 };
 
 const app: FirebaseApp =
