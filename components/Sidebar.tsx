@@ -2,10 +2,15 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+// 1. Import useRouter to handle the redirect
+import { usePathname, useRouter } from "next/navigation";
+// 2. Import your Firebase auth tools
+import { auth } from "@/utils/firebase";
+import { signOut } from "firebase/auth";
 
 const Sidebar = () => {
-	const pathname = usePathname(); // Gets the current URL path
+	const pathname = usePathname();
+	const router = useRouter(); // Initialize router
 
 	const navItems = [
 		{ name: "Home", path: "/dashboard" },
@@ -15,6 +20,23 @@ const Sidebar = () => {
 		{ name: "Settings", path: "/settings" },
 		{ name: "Support & Help Center", path: "/support" },
 	];
+
+	// 3. Create the logout function
+	const handleLogout = async () => {
+		try {
+			// Step A: Sign out of Firebase Auth securely
+			await signOut(auth);
+
+			// Step B: Erase the user data from local storage
+			localStorage.removeItem("userOrgId");
+			localStorage.removeItem("userRole");
+
+			// Step C: Redirect back to the login page (change "/" to "/login" if needed)
+			router.push("/");
+		} catch (error) {
+			console.error("Error logging out:", error);
+		}
+	};
 
 	return (
 		<aside className="w-64 bg-white shadow-lg flex flex-col h-screen z-10">
@@ -44,7 +66,6 @@ const Sidebar = () => {
 			<nav className="flex-1 mt-6">
 				<ul className="flex flex-col">
 					{navItems.map((item) => {
-						// Check if the current URL matches the link's path
 						const isActive = pathname === item.path;
 
 						return (
@@ -65,8 +86,11 @@ const Sidebar = () => {
 				</ul>
 			</nav>
 
-			{/* Logout Button */}
-			<button className="bg-[#b83232] text-white py-4 px-6 text-left font-semibold hover:bg-red-800 transition-colors w-full mt-auto">
+			{/* 4. Attach the function to the onClick handler */}
+			<button
+				onClick={handleLogout}
+				className="bg-[#b83232] text-white py-4 px-6 text-left font-semibold hover:bg-red-800 transition-colors w-full mt-auto"
+			>
 				Logout
 			</button>
 		</aside>

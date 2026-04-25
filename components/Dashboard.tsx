@@ -7,7 +7,7 @@ const Dashboard: React.FC = () => {
 			{/* Welcome Header */}
 			<div>
 				<h1 className="text-4xl font-bold text-gray-900 mb-2">
-					Welcome! John Doe
+					Welcome! Admin
 				</h1>
 				<p className="text-gray-600">
 					Monitor social welfare metrics and track regional development progress

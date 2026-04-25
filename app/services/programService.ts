@@ -13,23 +13,32 @@ import {
 	collectionGroup,
 } from "firebase/firestore";
 import type { Program } from "@/app/types/program";
-import type { DetailSection } from "@/app/types/programDetailSection";
-import type { FormField } from "@/app/types/applicationForm";
 
 const COL = "programs";
 
-// ─── Programs ────────────────────────────────────────────────
+// ─── READ OPERATIONS ─────────────────────────────────────────
 
 export const getPrograms = async (): Promise<Program[]> => {
-	// Use collectionGroup to search ALL subcollections named "programs"
+	// collectionGroup tells Firebase to search EVERY folder named "programs"
 	const snapshot = await getDocs(collectionGroup(db, COL));
 	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Program);
 };
 
+// Add this at the bottom of programService.ts
+export const getOrganization = async (orgId: string) => {
+	const orgRef = doc(db, "organizations", orgId);
+	const orgSnap = await getDoc(orgRef);
+
+	return orgSnap.exists() ? orgSnap.data() : null;
+};
+
 export const getProgramsByStatus = async (
-	status: Program["_programStatus"],
+	status: Program["programStatus"],
 ): Promise<Program[]> => {
-	const q = query(collection(db, COL), where("_programStatus", "==", status));
+	const q = query(
+		collectionGroup(db, COL),
+		where("programStatus", "==", status),
+	);
 	const snapshot = await getDocs(q);
 	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Program);
 };
@@ -37,23 +46,45 @@ export const getProgramsByStatus = async (
 export const getProgramsByOrg = async (
 	organizationId: string,
 ): Promise<Program[]> => {
-	const q = query(
-		collection(db, COL),
-		where("organizationId", "==", organizationId),
+	// Look specifically inside the organization's programs folder
+	const orgProgramsRef = collection(
+		db,
+		"organizations",
+		organizationId,
+		"programs",
 	);
-	const snapshot = await getDocs(q);
+	const snapshot = await getDocs(orgProgramsRef);
 	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Program);
 };
 
 export const getProgram = async (id: string): Promise<Program | null> => {
-	const snap = await getDoc(doc(db, COL, id));
-	return snap.exists() ? ({ id: snap.id, ...snap.data() } as Program) : null;
+	// 1. Search across ALL subcollections named "programs"
+	const q = query(collectionGroup(db, COL));
+	const snapshot = await getDocs(q);
+
+	// 2. Find the specific document where the ID matches the one from the URL
+	const matchedDoc = snapshot.docs.find((d) => d.id === id);
+
+	// 3. Return it if found, otherwise return null
+	return matchedDoc
+		? ({ id: matchedDoc.id, ...matchedDoc.data() } as Program)
+		: null;
 };
+
+// ─── WRITE OPERATIONS ────────────────────────────────────────
 
 export const createProgram = async (
 	data: Omit<Program, "id" | "createdAt" | "lastUpdated">,
 ): Promise<string> => {
-	const ref = await addDoc(collection(db, COL), {
+	// IMPORTANT: We use data.organizationId to put it in the right folder!
+	const orgProgramsRef = collection(
+		db,
+		"organizations",
+		data.organizationId,
+		"programs",
+	);
+
+	const ref = await addDoc(orgProgramsRef, {
 		...data,
 		createdAt: serverTimestamp(),
 		lastUpdated: serverTimestamp(),
@@ -62,86 +93,23 @@ export const createProgram = async (
 };
 
 export const updateProgram = async (
+	orgId: string, // <-- Added orgId
 	id: string,
 	data: Partial<Omit<Program, "id" | "createdAt">>,
 ): Promise<void> => {
-	await updateDoc(doc(db, COL, id), {
+	// Construct the exact path: organizations/{orgId}/programs/{id}
+	const programRef = doc(db, "organizations", orgId, "programs", id);
+
+	await updateDoc(programRef, {
 		...data,
 		lastUpdated: serverTimestamp(),
 	});
 };
 
-export const deleteProgram = async (id: string): Promise<void> => {
-	await deleteDoc(doc(db, COL, id));
-};
-
-// ─── Detail Sections (subcollection) ─────────────────────────
-
-export const getDetailSections = async (
-	programId: string,
-): Promise<DetailSection[]> => {
-	const snapshot = await getDocs(
-		collection(db, COL, programId, "detailSections"),
-	);
-	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as DetailSection);
-};
-
-export const createDetailSection = async (
-	programId: string,
-	data: Omit<DetailSection, "id">,
-): Promise<string> => {
-	const ref = await addDoc(
-		collection(db, COL, programId, "detailSections"),
-		data,
-	);
-	return ref.id;
-};
-
-export const updateDetailSection = async (
-	programId: string,
-	sectionId: string,
-	data: Partial<Omit<DetailSection, "id">>,
+export const deleteProgram = async (
+	orgId: string, // <-- Added orgId
+	id: string,
 ): Promise<void> => {
-	await updateDoc(doc(db, COL, programId, "detailSections", sectionId), data);
-};
-
-export const deleteDetailSection = async (
-	programId: string,
-	sectionId: string,
-): Promise<void> => {
-	await deleteDoc(doc(db, COL, programId, "detailSections", sectionId));
-};
-
-// ─── Form Fields (subcollection) ──────────────────────────────
-
-export const getFormFields = async (
-	programId: string,
-): Promise<FormField[]> => {
-	const snapshot = await getDocs(collection(db, COL, programId, "formFields"));
-	return snapshot.docs
-		.map((d) => ({ id: d.id, ...d.data() }) as FormField)
-		.sort((a, b) => a.order - b.order);
-};
-
-export const createFormField = async (
-	programId: string,
-	data: Omit<FormField, "id">,
-): Promise<string> => {
-	const ref = await addDoc(collection(db, COL, programId, "formFields"), data);
-	return ref.id;
-};
-
-export const updateFormField = async (
-	programId: string,
-	fieldId: string,
-	data: Partial<Omit<FormField, "id">>,
-): Promise<void> => {
-	await updateDoc(doc(db, COL, programId, "formFields", fieldId), data);
-};
-
-export const deleteFormField = async (
-	programId: string,
-	fieldId: string,
-): Promise<void> => {
-	await deleteDoc(doc(db, COL, programId, "formFields", fieldId));
+	const programRef = doc(db, "organizations", orgId, "programs", id);
+	await deleteDoc(programRef);
 };

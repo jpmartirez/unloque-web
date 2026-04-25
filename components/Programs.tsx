@@ -1,11 +1,20 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getPrograms } from "@/app/services/programService";
+// 1. IMPORTANT: Ensure createProgram is imported here!
+import {
+	getProgramsByOrg,
+	createProgram,
+	getOrganization,
+} from "@/app/services/programService";
 import type { Program } from "@/app/types/program";
+import Link from "next/link";
+// 2. IMPORTANT: Use the correct App Router hook
+import { useRouter } from "next/navigation";
 
 // --- Reusable Program Card Component ---
 interface ProgramCardProps {
+	id: string;
 	title: string;
 	subtitle: string;
 	applicationCount: string;
@@ -14,6 +23,7 @@ interface ProgramCardProps {
 }
 
 const ProgramCard: React.FC<ProgramCardProps> = ({
+	id,
 	title,
 	subtitle,
 	applicationCount,
@@ -46,7 +56,10 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 							/>
 						</svg>
 					</button>
-					<button className="w-8 h-8 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors shadow-sm">
+					<Link
+						href={`/programs/edit/${id}`}
+						className="w-8 h-8 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors shadow-sm"
+					>
 						<svg
 							className="w-4 h-4 text-white"
 							fill="none"
@@ -60,14 +73,13 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 								d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
 							/>
 						</svg>
-					</button>
+					</Link>
 				</div>
 			</div>
 
 			{/* Bottom Section - White */}
 			<div className="p-6 flex flex-col gap-6">
 				<div className="flex items-center gap-6">
-					{/* Applications Count Badge */}
 					<div className="bg-[#0f6b75] rounded-xl p-3 flex flex-col items-center justify-center min-w-25 shadow-sm">
 						<span className="text-white font-bold text-xl leading-tight">
 							{applicationCount}
@@ -77,14 +89,12 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 						</span>
 					</div>
 
-					{/* Dates */}
 					<div className="text-[11px] text-gray-400 font-medium leading-relaxed">
 						<p>Application start: {startDate}</p>
 						<p>Application due: {dueDate}</p>
 					</div>
 				</div>
 
-				{/* View Button */}
 				<div className="flex justify-end mt-2">
 					<button className="bg-black hover:bg-gray-900 text-white text-xs font-bold py-3 px-6 rounded-full transition-colors shadow-sm">
 						View Applications
@@ -97,19 +107,43 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 
 // --- Main Programs Page Component ---
 const Programs: React.FC = () => {
-	// 1. Existing state for data
 	const [programs, setPrograms] = useState<Program[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-
-	// 2. NEW STATE: Track the user's search input
 	const [searchQuery, setSearchQuery] = useState("");
+	const [orgName, setOrgName] = useState<string>("LOADING...");
 
-	// Fetch data when the component mounts
+	// NEW: State to track if a program is currently being created
+	const [isCreating, setIsCreating] = useState(false);
+
+	// Initialize the router
+	const router = useRouter();
+
 	useEffect(() => {
+		const fetchOrgData = async () => {
+			const userOrgId = localStorage.getItem("userOrgId");
+
+			if (userOrgId) {
+				// Fetch the organization data
+				const orgData = await getOrganization(userOrgId);
+
+				// Set the name in state (assuming your org document has a 'name' field)
+				setOrgName(orgData?.name || "UNKNOWN ORG");
+			}
+		};
+
+		fetchOrgData();
+
 		const fetchPrograms = async () => {
 			try {
-				const data = await getPrograms();
+				const userOrgId = localStorage.getItem("userOrgId");
+
+				if (!userOrgId) {
+					router.push("/login"); // FIXED ROUTER CALL
+					return;
+				}
+
+				const data = await getProgramsByOrg(userOrgId);
 				setPrograms(data);
 			} catch (err) {
 				console.error("Error fetching programs:", err);
@@ -120,16 +154,48 @@ const Programs: React.FC = () => {
 		};
 
 		fetchPrograms();
-	}, []);
+	}, [router]);
 
-	// 3. NEW FILTER LOGIC: Filter the programs based on the search query
+	// NEW: Function to handle creating a new program
+	const handleAddProgram = async () => {
+		try {
+			setIsCreating(true);
+			const userOrgId = localStorage.getItem("userOrgId");
+
+			if (!userOrgId) {
+				alert("You must be logged in to create a program.");
+				return;
+			}
+
+			// Create a blank/draft program structure
+			const newProgramData: any = {
+				name: "Untitled Program",
+				organizationId: userOrgId,
+				category: "Education",
+				programStatus: "Draft",
+				color: "#00abc0",
+				deadline: "",
+				formFields: [],
+				detailSections: [],
+			};
+
+			// Save to Firebase and get the new ID back
+			const newProgramId = await createProgram(newProgramData);
+
+			// Instantly redirect to the Editor so the admin can fill in the blanks!
+			router.push(`/programs/edit/${newProgramId}`);
+		} catch (err) {
+			console.error("Failed to create program:", err);
+			alert("An error occurred while creating the program.");
+			setIsCreating(false);
+		}
+	};
+
 	const filteredPrograms = programs.filter((program) => {
-		// Convert both to lowercase so the search isn't case-sensitive
 		const query = searchQuery.toLowerCase();
 		const programName = program.name?.toLowerCase() || "";
-		const category = program._category?.toLowerCase() || "";
+		const category = program.category?.toLowerCase() || "";
 
-		// Return true if the name OR the category matches the search
 		return programName.includes(query) || category.includes(query);
 	});
 
@@ -137,7 +203,7 @@ const Programs: React.FC = () => {
 		<div className="flex flex-col gap-8 pb-12 w-full max-w-250">
 			{/* Header Section */}
 			<div>
-				<h1 className="text-4xl font-bold text-gray-900 mb-2">DOST Programs</h1>
+				<h1 className="text-4xl font-bold text-gray-900 mb-2">{orgName}</h1>
 				<p className="text-gray-600 text-sm font-medium">
 					Keep track of your programs. Add or modify details of your
 					applications.
@@ -148,7 +214,6 @@ const Programs: React.FC = () => {
 			<div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-2">
 				{/* Search Bar */}
 				<div className="relative w-full md:max-w-xl">
-					{/* 4. UPDATE INPUT: Bind it to the searchQuery state */}
 					<input
 						type="text"
 						placeholder="Search programs"
@@ -188,8 +253,14 @@ const Programs: React.FC = () => {
 							/>
 						</svg>
 					</button>
-					<button className="bg-black hover:bg-gray-800 text-white font-semibold py-2.5 px-8 rounded-full text-sm transition-colors shadow-sm">
-						Add Program
+
+					{/* NEW: Connected the button to handleAddProgram */}
+					<button
+						onClick={handleAddProgram}
+						disabled={isCreating}
+						className={`bg-black text-white font-semibold py-2.5 px-8 rounded-full text-sm transition-colors shadow-sm ${isCreating ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-800"}`}
+					>
+						{isCreating ? "Creating..." : "Add Program"}
 					</button>
 				</div>
 			</div>
@@ -207,7 +278,6 @@ const Programs: React.FC = () => {
 				{isLoading && <p className="text-gray-500">Loading programs...</p>}
 				{error && <p className="text-red-500">{error}</p>}
 
-				{/* Updated Empty State check to look at filteredPrograms */}
 				{!isLoading && !error && filteredPrograms.length === 0 && (
 					<p className="text-gray-500">
 						{searchQuery
@@ -216,23 +286,24 @@ const Programs: React.FC = () => {
 					</p>
 				)}
 
-				{/* 5. UPDATE MAP: Map over filteredPrograms instead of programs */}
+				{/* Grid */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 					{filteredPrograms.map((program) => {
-						// Safe date handling just in case Firebase returns a Timestamp object instead of a string
 						const start = program.createdAt?.seconds
 							? new Date(program.createdAt.seconds * 1000).toLocaleDateString()
-							: new Date(program.createdAt).toLocaleDateString();
+							: new Date(program.createdAt as string).toLocaleDateString();
 
+						// FIXED: Changed _deadline to deadline
 						const due = program._deadline
 							? new Date(program._deadline).toLocaleDateString()
 							: "TBA";
 
 						return (
 							<ProgramCard
+								id={program.id}
 								key={program.id}
 								title={program.name}
-								subtitle={program._category}
+								subtitle={program.category}
 								startDate={start}
 								dueDate={due}
 								applicationCount="0"
