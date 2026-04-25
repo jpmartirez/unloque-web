@@ -97,12 +97,15 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 
 // --- Main Programs Page Component ---
 const Programs: React.FC = () => {
-	// 1. Set up state to hold the data, loading status, and potential errors
+	// 1. Existing state for data
 	const [programs, setPrograms] = useState<Program[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// 2. Fetch data when the component mounts
+	// 2. NEW STATE: Track the user's search input
+	const [searchQuery, setSearchQuery] = useState("");
+
+	// Fetch data when the component mounts
 	useEffect(() => {
 		const fetchPrograms = async () => {
 			try {
@@ -119,6 +122,17 @@ const Programs: React.FC = () => {
 		fetchPrograms();
 	}, []);
 
+	// 3. NEW FILTER LOGIC: Filter the programs based on the search query
+	const filteredPrograms = programs.filter((program) => {
+		// Convert both to lowercase so the search isn't case-sensitive
+		const query = searchQuery.toLowerCase();
+		const programName = program.name?.toLowerCase() || "";
+		const category = program._category?.toLowerCase() || "";
+
+		// Return true if the name OR the category matches the search
+		return programName.includes(query) || category.includes(query);
+	});
+
 	return (
 		<div className="flex flex-col gap-8 pb-12 w-full max-w-250">
 			{/* Header Section */}
@@ -134,9 +148,12 @@ const Programs: React.FC = () => {
 			<div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-2">
 				{/* Search Bar */}
 				<div className="relative w-full md:max-w-xl">
+					{/* 4. UPDATE INPUT: Bind it to the searchQuery state */}
 					<input
 						type="text"
 						placeholder="Search programs"
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
 						className="w-full bg-gray-200/70 border-none rounded-full py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#00abc0] transition-shadow placeholder-gray-400 font-medium"
 					/>
 					<svg
@@ -189,22 +206,39 @@ const Programs: React.FC = () => {
 				{/* Status Messages */}
 				{isLoading && <p className="text-gray-500">Loading programs...</p>}
 				{error && <p className="text-red-500">{error}</p>}
-				{!isLoading && !error && programs.length === 0 && (
-					<p className="text-gray-500">No active programs found.</p>
+
+				{/* Updated Empty State check to look at filteredPrograms */}
+				{!isLoading && !error && filteredPrograms.length === 0 && (
+					<p className="text-gray-500">
+						{searchQuery
+							? "No programs found matching your search."
+							: "No active programs found."}
+					</p>
 				)}
 
-				{/* 3. Map over the fetched programs to render the cards */}
+				{/* 5. UPDATE MAP: Map over filteredPrograms instead of programs */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-					{programs.map((program) => (
-						<ProgramCard
-							key={program.id}
-							title={program.name}
-							subtitle={program._category}
-							startDate={new Date(program.createdAt).toLocaleDateString()}
-							dueDate={new Date(program._deadline).toLocaleDateString()}
-							applicationCount="0"
-						/>
-					))}
+					{filteredPrograms.map((program) => {
+						// Safe date handling just in case Firebase returns a Timestamp object instead of a string
+						const start = program.createdAt?.seconds
+							? new Date(program.createdAt.seconds * 1000).toLocaleDateString()
+							: new Date(program.createdAt).toLocaleDateString();
+
+						const due = program._deadline
+							? new Date(program._deadline).toLocaleDateString()
+							: "TBA";
+
+						return (
+							<ProgramCard
+								key={program.id}
+								title={program.name}
+								subtitle={program._category}
+								startDate={start}
+								dueDate={due}
+								applicationCount="0"
+							/>
+						);
+					})}
 				</div>
 			</div>
 		</div>
