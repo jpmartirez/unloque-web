@@ -16,6 +16,67 @@ import type { Program } from "@/app/types/program";
 
 const COL = "programs";
 
+// Add to your types at the top or in a separate types file
+export interface NewsItem {
+	id: string;
+	headline: string;
+	category: string;
+	date: string;
+	imageUrl: string;
+	newsUrl: string;
+	createdAt?: any;
+}
+
+// Add these functions to programService.ts
+
+export const getAllNews = async (): Promise<
+	(NewsItem & { programId: string })[]
+> => {
+	// 1. Search across ALL subcollections named "news"
+	const q = query(collectionGroup(db, "news"));
+	const snapshot = await getDocs(q);
+
+	return snapshot.docs.map((d) => {
+		
+		const extractedProgramId = d.ref.parent.parent?.id || "";
+
+		return {
+			id: d.id,
+			programId: extractedProgramId, 
+			...d.data(),
+		} as NewsItem & { programId: string };
+	});
+};
+
+export const getSingleNews = async (
+	newsId: string,
+): Promise<NewsItem | null> => {
+	const q = query(collectionGroup(db, "news"));
+	const snapshot = await getDocs(q);
+
+	const matchedDoc = snapshot.docs.find((d) => d.id === newsId);
+	return matchedDoc
+		? ({ id: matchedDoc.id, ...matchedDoc.data() } as NewsItem)
+		: null;
+};
+
+// Update an existing news item using ONLY the newsId
+export const updateNews = async (
+	newsId: string,
+	data: Partial<NewsItem>,
+): Promise<void> => {
+	const q = query(collectionGroup(db, "news"));
+	const snapshot = await getDocs(q);
+	const matchedDoc = snapshot.docs.find((d) => d.id === newsId);
+
+	if (matchedDoc) {
+		// matchedDoc.ref is the magic Firebase property that contains the exact full path!
+		await updateDoc(matchedDoc.ref, data);
+	} else {
+		throw new Error("News article not found.");
+	}
+};
+
 // ─── READ OPERATIONS ─────────────────────────────────────────
 
 export const getPrograms = async (): Promise<Program[]> => {
