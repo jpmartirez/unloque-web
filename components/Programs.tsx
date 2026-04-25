@@ -4,6 +4,28 @@ import React, { useEffect, useState } from "react";
 import { getPrograms } from "@/app/services/programService";
 import type { Program } from "@/app/types/program";
 
+const formatProgramDate = (value: unknown): string => {
+	if (value instanceof Date) {
+		return Number.isNaN(value.getTime()) ? "TBA" : value.toLocaleDateString();
+	}
+
+	if (typeof value === "string" || typeof value === "number") {
+		const parsedDate = new Date(value);
+		return Number.isNaN(parsedDate.getTime())
+			? "TBA"
+			: parsedDate.toLocaleDateString();
+	}
+
+	if (typeof value === "object" && value !== null && "seconds" in value) {
+		const seconds = (value as { seconds?: unknown }).seconds;
+		if (typeof seconds === "number") {
+			return new Date(seconds * 1000).toLocaleDateString();
+		}
+	}
+
+	return "TBA";
+};
+
 // --- Reusable Program Card Component ---
 interface ProgramCardProps {
 	title: string;
@@ -219,14 +241,8 @@ const Programs: React.FC = () => {
 				{/* 5. UPDATE MAP: Map over filteredPrograms instead of programs */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 					{filteredPrograms.map((program) => {
-						// Safe date handling just in case Firebase returns a Timestamp object instead of a string
-						const start = program.createdAt?.seconds
-							? new Date(program.createdAt.seconds * 1000).toLocaleDateString()
-							: new Date(program.createdAt).toLocaleDateString();
-
-						const due = program._deadline
-							? new Date(program._deadline).toLocaleDateString()
-							: "TBA";
+						const start = formatProgramDate(program.createdAt);
+						const due = formatProgramDate(program._deadline);
 
 						return (
 							<ProgramCard

@@ -1,7 +1,29 @@
+"use client";
+
 import Navbar from "@/components/Navbar";
-import React from "react";
+import React, { FormEvent, MouseEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Homepage = () => {
+	const router = useRouter();
+	const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
+
+	const handleLogin = (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		router.replace("/dashboard");
+	};
+
+	const handleForgotPassword = (event: MouseEvent<HTMLButtonElement>) => {
+		event.preventDefault();
+		router.replace("/forgot-password");
+	};
+
+	const handleBackdropClose = (event: MouseEvent<HTMLDivElement>) => {
+		if (event.target === event.currentTarget) {
+			setIsInstructionsModalOpen(false);
+		}
+	};
+
 	return (
 		<div className="min-h-screen flex flex-col">
 			<Navbar />
@@ -14,7 +36,7 @@ const Homepage = () => {
 						To get started, please log in to your account.
 					</p>
 
-					<form className="flex flex-col gap-5">
+					<form className="flex flex-col gap-5" onSubmit={handleLogin}>
 						{/* Email Input */}
 						<div className="flex flex-col gap-2">
 							<label
@@ -50,6 +72,7 @@ const Homepage = () => {
 							<button
 								type="button"
 								className="text-[#8c1c1c] text-sm font-bold hover:underline"
+								onClick={handleForgotPassword}
 							>
 								Forgot Password?
 							</button>
@@ -82,6 +105,7 @@ const Homepage = () => {
 							<button
 								type="button"
 								className="bg-[#0f0f0f] hover:bg-black text-white text-sm font-semibold py-2 px-8 rounded-full transition-colors"
+								onClick={() => setIsInstructionsModalOpen(true)}
 							>
 								Instructions
 							</button>
@@ -102,6 +126,38 @@ const Homepage = () => {
 					</div>
 				</aside>
 			</main>
+
+			{isInstructionsModalOpen && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+					onClick={handleBackdropClose}
+				>
+					<div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+						<h3 className="text-xl font-semibold text-gray-900">Instructions</h3>
+						<p className="mt-4 text-sm leading-relaxed text-gray-700">
+							Use your organization email and password to sign in. If this is
+							your first time, coordinate with your IT department for your
+							account credentials.
+						</p>
+						<div className="mt-6 flex justify-end gap-3">
+							<button
+								type="button"
+								className="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+								onClick={() => setIsInstructionsModalOpen(false)}
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								className="rounded-full bg-[#0f0f0f] px-5 py-2 text-sm font-semibold text-white hover:bg-black"
+								onClick={() => setIsInstructionsModalOpen(false)}
+							>
+								OK
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
