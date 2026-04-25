@@ -85,19 +85,212 @@ const OverviewTab = ({ program }: { program: Program | null }) => (
 	</div>
 );
 
-const DetailsTab = ({ program }: { program: Program | null }) => (
-	<div className="mt-8">
-		<div className="flex items-baseline gap-3 mb-4">
-			<h2 className="text-2xl font-bold text-gray-900">Details Builder</h2>
-			<span className="text-[11px] text-gray-400 font-medium">
-				Create and Customize program details sections.
-			</span>
+// --- Sub-component: Details Tab ---
+const DetailsTab = ({ program }: { program: Program | null }) => {
+	// 1. Safely grab the sections array
+	const sections = program?.detailSections || [];
+
+	// 2. Separate Index 0 (Main Paragraph) from the dynamic rest
+	const mainContent =
+		sections.length > 0
+			? sections[0]
+			: { label: "Main Description", content: "", type: "paragraph" };
+	const dynamicSections = sections.length > 1 ? sections.slice(1) : [];
+
+	// Helper: Dynamic badge colors based on section type
+	const getBadgeColor = (type: string) => {
+		switch (type?.toLowerCase()) {
+			case "paragraph":
+				return "bg-blue-600";
+			case "attachment":
+				return "bg-[#a83232]";
+			case "list":
+				return "bg-orange-500";
+			default:
+				return "bg-gray-600";
+		}
+	};
+
+	return (
+		<div className="mt-8 flex flex-col h-full">
+			<div className="flex items-baseline gap-3 mb-4 shrink-0">
+				<h2 className="text-2xl font-bold text-gray-900">Details Builder</h2>
+				<span className="text-[11px] text-gray-400 font-medium">
+					Create and Customize program details sections.
+				</span>
+			</div>
+
+			{/* Scrollable Container with padding so shadows aren't cut off */}
+			<div className="flex flex-col gap-6 relative pb-24 overflow-y-auto pr-2 custom-scrollbar">
+				{/* ─── INDEX 0: MAIN CONTENT (Always editable) ─── */}
+				<div className="bg-white rounded-3xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] p-8 border border-gray-100 shrink-0">
+					<input
+						type="text"
+						defaultValue={mainContent.label || "Main Description"}
+						className="w-full text-lg font-bold text-gray-900 mb-3 border-b border-transparent hover:border-gray-300 focus:border-[#00abc0] focus:outline-none bg-transparent transition-colors"
+						placeholder="Section Title"
+					/>
+					<textarea
+						className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800 min-h-[200px] resize-y"
+						placeholder="Write the main overview or details of the program here..."
+						defaultValue={mainContent.content || ""}
+					/>
+				</div>
+
+				{/* ─── INDEX 1+: DYNAMIC SECTIONS ─── */}
+				{dynamicSections.map((section: any, idx: number) => (
+					<div
+						key={section.id || idx}
+						className="bg-white rounded-3xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] p-8 border border-gray-100 shrink-0"
+					>
+						{/* Header & Controls */}
+						<div className="flex justify-between items-start mb-4">
+							<div className="flex items-center gap-3">
+								<span
+									className={`${getBadgeColor(section.type)} text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider`}
+								>
+									{section.type || "Custom"}
+								</span>
+							</div>
+
+							{/* Reorder and Delete Controls */}
+							<div className="flex items-center gap-2">
+								<button
+									title="Move Up"
+									className="p-1.5 text-gray-400 hover:text-black transition-colors rounded-lg hover:bg-gray-100"
+								>
+									<svg
+										className="w-5 h-5"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M5 15l7-7 7 7"
+										/>
+									</svg>
+								</button>
+								<button
+									title="Move Down"
+									className="p-1.5 text-gray-400 hover:text-black transition-colors rounded-lg hover:bg-gray-100"
+								>
+									<svg
+										className="w-5 h-5"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M19 9l-7 7-7-7"
+										/>
+									</svg>
+								</button>
+								<div className="w-px h-6 bg-gray-200 mx-1"></div>
+								<button
+									title="Delete Section"
+									className="bg-red-50 text-red-600 p-2 rounded-full hover:bg-red-600 hover:text-white transition-colors"
+								>
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+										/>
+									</svg>
+								</button>
+							</div>
+						</div>
+
+						{/* Editable Title */}
+						<input
+							type="text"
+							defaultValue={section.label || ""}
+							placeholder="e.g., Form C (Certificate of Good Moral Character)"
+							className="w-full text-lg font-bold text-gray-900 mb-4 border-b border-transparent hover:border-gray-300 focus:border-[#00abc0] focus:outline-none bg-transparent transition-colors"
+						/>
+
+						{/* ─── DYNAMIC RENDERER: PARAGRAPH ─── */}
+						{section.type === "paragraph" && (
+							<textarea
+								className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800 min-h-[100px] resize-y"
+								defaultValue={section.content || ""}
+								placeholder="Enter paragraph content..."
+							/>
+						)}
+
+						{/* ─── DYNAMIC RENDERER: ATTACHMENT ─── */}
+						{section.type === "attachment" && (
+							<div className="flex flex-col gap-3">
+								<div className="flex items-center justify-between bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6">
+									<div className="flex items-center gap-3">
+										<div className="bg-white p-3 rounded-full shadow-sm border border-gray-200">
+											<svg
+												className="w-6 h-6 text-[#a83232]"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth="2"
+													d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+												/>
+											</svg>
+										</div>
+										<div>
+											<p className="text-sm font-bold text-gray-900">
+												Attachment Placeholder
+											</p>
+											<p className="text-xs text-gray-500 font-medium mt-0.5">
+												Applicants will be able to download/view files here.
+											</p>
+										</div>
+									</div>
+									<button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-bold py-2 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-colors">
+										Manage Files
+									</button>
+								</div>
+							</div>
+						)}
+					</div>
+				))}
+
+				{/* ─── STICKY FLOATING ADD BUTTON ─── */}
+				<div className="sticky bottom-0 mt-4 pb-4 flex justify-end pointer-events-none">
+					<button className="bg-[#00abc0] hover:bg-[#0096a8] shadow-[0_10px_25px_rgba(0,171,192,0.4)] pointer-events-auto text-white text-sm font-bold py-4 px-8 rounded-full flex items-center gap-2 transition-transform transform hover:scale-105">
+						<svg
+							className="w-5 h-5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth="2.5"
+								d="M12 4v16m8-8H4"
+							/>
+						</svg>
+						Add New Section
+					</button>
+				</div>
+			</div>
 		</div>
-		<div className="bg-white rounded-3xl p-8 border border-gray-100 text-center text-gray-500">
-			Details Builder Area (Data mapping goes here next!)
-		</div>
-	</div>
-);
+	);
+};
 
 const FormTab = ({ program }: { program: Program | null }) => {
 	const getTypeBadgeColor = (type: string) => {
