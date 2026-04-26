@@ -20,7 +20,7 @@ const ViewApplicationsPage = () => {
 
 	// Filters
 	const [searchQuery, setSearchQuery] = useState("");
-	const [statusFilter, setStatusFilter] = useState("Ongoing"); // Matches your DB status
+	const [statusFilter, setStatusFilter] = useState("All"); // Show all statuses by default
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -45,11 +45,18 @@ const ViewApplicationsPage = () => {
 	}, [programId]);
 
 	// Format Timestamp safely
-	const formatTimestamp = (timestamp: any) => {
+	const formatTimestamp = (timestamp: unknown) => {
 		if (!timestamp) return "N/A";
 		// Handle Firebase Timestamp objects
-		if (timestamp.seconds) {
-			return new Date(timestamp.seconds * 1000).toLocaleString();
+		if (
+			typeof timestamp === "object" &&
+			timestamp !== null &&
+			"seconds" in timestamp &&
+			typeof (timestamp as { seconds?: unknown }).seconds === "number"
+		) {
+			return new Date(
+				((timestamp as { seconds: number }).seconds ?? 0) * 1000,
+			).toLocaleString();
 		}
 		// Handle string dates
 		return new Date(timestamp).toLocaleString();
@@ -59,7 +66,6 @@ const ViewApplicationsPage = () => {
 	const filteredApps = applications.filter((app) => {
 		const query = searchQuery.toLowerCase();
 		const matchesSearch =
-			app.applicationId.toLowerCase().includes(query) ||
 			app.username.toLowerCase().includes(query) ||
 			app.email.toLowerCase().includes(query);
 
@@ -133,7 +139,7 @@ const ViewApplicationsPage = () => {
 					<div className="relative w-full max-w-md">
 						<input
 							type="text"
-							placeholder="Search applicant ID / applicants"
+								placeholder="Search applicants"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							className="w-full bg-white border border-gray-200 rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#00abc0]"
@@ -179,6 +185,7 @@ const ViewApplicationsPage = () => {
 						>
 							<option value="All">All Statuses</option>
 							<option value="Ongoing">Ongoing</option>
+							<option value="Completed">Completed</option>
 							<option value="Accepted">Accepted</option>
 							<option value="Rejected">Rejected</option>
 						</select>
@@ -206,9 +213,6 @@ const ViewApplicationsPage = () => {
 						<table className="w-full text-left border-collapse">
 							<thead>
 								<tr className="bg-[#00abc0] text-white">
-									<th className="py-4 px-6 font-semibold text-sm">
-										Application ID
-									</th>
 									<th className="py-4 px-6 font-semibold text-sm">Username</th>
 									<th className="py-4 px-6 font-semibold text-sm">Email</th>
 									<th className="py-4 px-6 font-semibold text-sm">Status</th>
@@ -221,7 +225,7 @@ const ViewApplicationsPage = () => {
 								{filteredApps.length === 0 ? (
 									<tr>
 										<td
-											colSpan={5}
+											colSpan={4}
 											className="py-8 text-center text-gray-400 font-medium"
 										>
 											No applicants found.
@@ -231,11 +235,13 @@ const ViewApplicationsPage = () => {
 									filteredApps.map((app, index) => (
 										<tr
 											key={index}
-											className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+											className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+											onClick={() =>
+												router.push(
+													`/programs/${programId}/applications/${app.applicationId}?userId=${encodeURIComponent(app.userId)}`,
+											)
+										}
 										>
-											<td className="py-4 px-6 font-medium text-[#00abc0]">
-												{app.applicationId}
-											</td>
 											<td className="py-4 px-6 capitalize">{app.username}</td>
 											<td className="py-4 px-6">{app.email}</td>
 											<td className="py-4 px-6">
