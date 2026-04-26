@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 // 1. Import useRouter to handle the redirect
 import { usePathname, useRouter } from "next/navigation";
@@ -10,7 +10,8 @@ import { signOut } from "firebase/auth";
 
 const Sidebar = () => {
 	const pathname = usePathname();
-	const router = useRouter(); // Initialize router
+	const router = useRouter();
+	const [userEmail, setUserEmail] = useState<string>("Loading...");
 
 	const navItems = [
 		{ name: "Home", path: "/dashboard" },
@@ -21,17 +22,23 @@ const Sidebar = () => {
 		{ name: "Support & Help Center", path: "/support" },
 	];
 
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const savedEmail = localStorage.getItem("userEmail");
+			// eslint-disable-next-line react-hooks/set-state-in-effect
+			setUserEmail(savedEmail ?? "Unknown User");
+		}
+	}, []);
+
 	// 3. Create the logout function
 	const handleLogout = async () => {
 		try {
-			// Step A: Sign out of Firebase Auth securely
 			await signOut(auth);
 
-			// Step B: Erase the user data from local storage
 			localStorage.removeItem("userOrgId");
 			localStorage.removeItem("userRole");
+			localStorage.removeItem("userEmail");
 
-			// Step C: Redirect back to the login page (change "/" to "/login" if needed)
 			router.push("/");
 		} catch (error) {
 			console.error("Error logging out:", error);
@@ -57,8 +64,9 @@ const Sidebar = () => {
 						/>
 					</svg>
 				</div>
-				<span className="text-sm font-medium text-black">
-					example@email.corporate.com
+				{/* NEW: Display the dynamic email state here */}
+				<span className="text-sm font-bold text-white truncate w-full text-center px-2">
+					{userEmail}
 				</span>
 			</div>
 

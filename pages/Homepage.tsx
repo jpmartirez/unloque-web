@@ -43,7 +43,8 @@ const Homepage = () => {
 				// LocalStorage is the easiest starting point before moving to React Context.
 				if (typeof window !== "undefined") {
 					localStorage.setItem("userOrgId", orgId);
-					localStorage.setItem("userRole", userData.role); // Optional: save role too
+					localStorage.setItem("userRole", userData.role);
+					localStorage.setItem("userEmail", user.email || "");
 				}
 
 				// Step D: Send them to the dashboard!
