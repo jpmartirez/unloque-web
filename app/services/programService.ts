@@ -11,6 +11,8 @@ import {
 	query,
 	where,
 	collectionGroup,
+	getCountFromServer,
+	FieldPath,
 } from "firebase/firestore";
 import type { Program } from "@/app/types/program";
 
@@ -27,6 +29,17 @@ export interface NewsItem {
 	createdAt?: any;
 }
 
+export interface ApplicationWithUser {
+	applicationId: string;
+	programId: string;
+	status: string;
+	createdAt: any;
+	userId: string;
+	username: string;
+	email: string;
+	photoUrl: string;
+}
+
 // Add these functions to programService.ts
 
 export const getAllNews = async (): Promise<
@@ -37,12 +50,11 @@ export const getAllNews = async (): Promise<
 	const snapshot = await getDocs(q);
 
 	return snapshot.docs.map((d) => {
-		
 		const extractedProgramId = d.ref.parent.parent?.id || "";
 
 		return {
 			id: d.id,
-			programId: extractedProgramId, 
+			programId: extractedProgramId,
 			...d.data(),
 		} as NewsItem & { programId: string };
 	});
@@ -60,6 +72,70 @@ export const getSingleNews = async (
 		: null;
 };
 
+export const getProgramApplications = async (
+	programId: string,
+): Promise<ApplicationWithUser[]> => {
+	// 1. Fetch all applications matching the programId
+	const q = query(
+		collectionGroup(db, "users-application"),
+		where("programId", "==", programId),
+	);
+	const snapshot = await getDocs(q);
+
+	// 2. Loop through and fetch the user details for each application
+	const applications = await Promise.all(
+		snapshot.docs.map(async (d) => {
+			const appData = d.data();
+			
+			const userId = d.ref.parent.parent?.id;
+
+			let userData = { username: "Unknown", email: "Unknown", photoUrl: "" };
+
+			if (userId) {
+				const userDoc = await getDoc(doc(db, "users", userId));
+				if (userDoc.exists()) {
+					userData = userDoc.data() as any;
+				}
+			}
+
+			return {
+				applicationId: d.id,
+				programId: appData.programId,
+				status: appData.status || "Ongoing",
+				createdAt: appData.createdAt,
+				userId: userId || "",
+				username: userData.username || "Unknown User",
+				email: userData.email || "No email",
+				photoUrl: userData.photoUrl || "",
+			};
+		}),
+	);
+
+	return applications;
+};
+
+export const getApplicationCountForProgram = async (
+	programId: string,
+): Promise<number> => {
+	try {
+		// Search every "users-application" folder across ALL users
+		const q = query(
+			collectionGroup(db, "users-application"),
+
+			where("programId", "==", programId),
+		);
+
+		// Count the results securely and cheaply on the server
+		const snapshot = await getCountFromServer(q);
+		return snapshot.data().count;
+	} catch (error) {
+		console.error(
+			`Error counting applications for program ${programId}:`,
+			error,
+		);
+		return 0;
+	}
+};
 // Update an existing news item using ONLY the newsId
 export const updateNews = async (
 	newsId: string,

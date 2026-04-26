@@ -508,7 +508,7 @@ const ProgramEditor = () => {
 			{/* ─── MAIN CONTENT AREA ─────────────────────────────────── */}
 			<div className="flex-1 flex flex-col overflow-hidden">
 				{/* ─── TOP NAVIGATION ───────────────────────────────────── */}
-				<header className="bg-white h-20 shadow-sm flex items-center justify-between px-8 z-10 flex-shrink-0">
+				<header className="bg-white h-20 shadow-sm flex items-center justify-between px-8 z-10 shrink-0">
 					<div className="flex items-center gap-3 w-48">
 						<Image src={"/unloquelogo.png"} alt="logo" width={24} height={24} />
 						<span className="text-2xl font-bold text-gray-900 tracking-tight">

@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-// 1. IMPORTANT: Ensure createProgram is imported here!
 import {
 	getProgramsByOrg,
-	createProgram,
 	getOrganization,
+	deleteProgram,
+	getApplicationCountForProgram, // <-- IMPORT THIS!
 } from "@/app/services/programService";
 import type { Program } from "@/app/types/program";
 import Link from "next/link";
-// 2. IMPORTANT: Use the correct App Router hook
 import { useRouter } from "next/navigation";
 
 // --- Reusable Program Card Component ---
@@ -20,6 +19,7 @@ interface ProgramCardProps {
 	applicationCount: string;
 	startDate: string;
 	dueDate: string;
+	onDelete: (id: string) => void; // <-- NEW: Added onDelete prop
 }
 
 const ProgramCard: React.FC<ProgramCardProps> = ({
@@ -29,6 +29,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 	applicationCount,
 	startDate,
 	dueDate,
+	onDelete,
 }) => {
 	return (
 		<div className="bg-white rounded-3xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden border border-gray-100">
@@ -41,7 +42,11 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 
 				{/* Action Buttons */}
 				<div className="flex gap-2">
-					<button className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors shadow-sm">
+					{/* NEW: Attached the onClick event to the delete button */}
+					<button
+						onClick={() => onDelete(id)}
+						className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors shadow-sm"
+					>
 						<svg
 							className="w-4 h-4 text-white"
 							fill="none"
@@ -96,9 +101,12 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 				</div>
 
 				<div className="flex justify-end mt-2">
-					<button className="bg-black hover:bg-gray-900 text-white text-xs font-bold py-3 px-6 rounded-full transition-colors shadow-sm">
+					<Link
+						href={`/programs/${id}/applications`} // <-- Add this Link wrapper!
+						className="bg-black hover:bg-gray-900 text-white text-xs font-bold py-3 px-6 rounded-full transition-colors shadow-sm block text-center"
+					>
 						View Applications
-					</button>
+					</Link>
 				</div>
 			</div>
 		</div>
@@ -107,44 +115,49 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
 
 // --- Main Programs Page Component ---
 const Programs: React.FC = () => {
-	const [programs, setPrograms] = useState<Program[]>([]);
+	const [programs, setPrograms] = useState<
+		(Program & { applicationCount: string })[]
+	>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [orgName, setOrgName] = useState<string>("LOADING...");
 
-	// NEW: State to track if a program is currently being created
-	const [isCreating, setIsCreating] = useState(false);
-
-	// Initialize the router
 	const router = useRouter();
 
 	useEffect(() => {
 		const fetchOrgData = async () => {
 			const userOrgId = localStorage.getItem("userOrgId");
-
 			if (userOrgId) {
-				// Fetch the organization data
 				const orgData = await getOrganization(userOrgId);
-
-				// Set the name in state (assuming your org document has a 'name' field)
 				setOrgName(orgData?.name || "UNKNOWN ORG");
 			}
 		};
 
-		fetchOrgData();
-
 		const fetchPrograms = async () => {
 			try {
 				const userOrgId = localStorage.getItem("userOrgId");
-
 				if (!userOrgId) {
-					router.push("/login"); // FIXED ROUTER CALL
+					router.push("/");
 					return;
 				}
 
+				// 1. Fetch the raw programs
 				const data = await getProgramsByOrg(userOrgId);
-				setPrograms(data);
+
+				// 2. Fetch the application counts for all of them in parallel
+				const programsWithCounts = await Promise.all(
+					data.map(async (program) => {
+						const count = await getApplicationCountForProgram(program.id);
+						return {
+							...program,
+							applicationCount: count.toString(), // Attach the fresh count!
+						};
+					}),
+				);
+
+				// 3. Save the fully updated list to state
+				setPrograms(programsWithCounts);
 			} catch (err) {
 				console.error("Error fetching programs:", err);
 				setError("Failed to load programs.");
@@ -153,41 +166,37 @@ const Programs: React.FC = () => {
 			}
 		};
 
+		fetchOrgData();
 		fetchPrograms();
 	}, [router]);
 
-	// NEW: Function to handle creating a new program
-	const handleAddProgram = async () => {
+	// NEW: Function to navigate to creation page
+	const handleAddProgram = () => {
+		router.push("/programs/create");
+	};
+
+	// NEW: Function to handle deleting a program
+	const handleDeleteProgram = async (programId: string) => {
+		// 1. Ask for confirmation so they don't accidentally click it
+		const confirmDelete = window.confirm(
+			"Are you sure you want to delete this program? This action cannot be undone.",
+		);
+		if (!confirmDelete) return;
+
+		const userOrgId = localStorage.getItem("userOrgId");
+		if (!userOrgId) return;
+
 		try {
-			setIsCreating(true);
-			const userOrgId = localStorage.getItem("userOrgId");
+			// 2. Delete it from Firebase
+			await deleteProgram(userOrgId, programId);
 
-			if (!userOrgId) {
-				alert("You must be logged in to create a program.");
-				return;
-			}
-
-			// Create a blank/draft program structure
-			const newProgramData: any = {
-				name: "Untitled Program",
-				organizationId: userOrgId,
-				category: "Education",
-				programStatus: "Draft",
-				color: "#00abc0",
-				deadline: "",
-				formFields: [],
-				detailSections: [],
-			};
-
-			// Save to Firebase and get the new ID back
-			const newProgramId = await createProgram(newProgramData);
-
-			// Instantly redirect to the Editor so the admin can fill in the blanks!
-			router.push(`/programs/edit/${newProgramId}`);
-		} catch (err) {
-			console.error("Failed to create program:", err);
-			alert("An error occurred while creating the program.");
-			setIsCreating(false);
+			// 3. Remove it from the local React state instantly so it disappears from the screen
+			setPrograms((prevPrograms) =>
+				prevPrograms.filter((program) => program.id !== programId),
+			);
+		} catch (error) {
+			console.error("Error deleting program:", error);
+			alert("An error occurred while trying to delete the program.");
 		}
 	};
 
@@ -195,7 +204,6 @@ const Programs: React.FC = () => {
 		const query = searchQuery.toLowerCase();
 		const programName = program.name?.toLowerCase() || "";
 		const category = program.category?.toLowerCase() || "";
-
 		return programName.includes(query) || category.includes(query);
 	});
 
@@ -212,7 +220,6 @@ const Programs: React.FC = () => {
 
 			{/* Toolbar */}
 			<div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-2">
-				{/* Search Bar */}
 				<div className="relative w-full md:max-w-xl">
 					<input
 						type="text"
@@ -236,7 +243,6 @@ const Programs: React.FC = () => {
 					</svg>
 				</div>
 
-				{/* Add Program Button Group */}
 				<div className="flex items-center gap-3 shrink-0">
 					<button className="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-gray-100 transition-colors">
 						<svg
@@ -253,14 +259,11 @@ const Programs: React.FC = () => {
 							/>
 						</svg>
 					</button>
-
-					{/* NEW: Connected the button to handleAddProgram */}
 					<button
 						onClick={handleAddProgram}
-						disabled={isCreating}
-						className={`bg-black text-white font-semibold py-2.5 px-8 rounded-full text-sm transition-colors shadow-sm ${isCreating ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-800"}`}
+						className="bg-black text-white font-semibold py-2.5 px-8 rounded-full text-sm transition-colors shadow-sm hover:bg-gray-800"
 					>
-						{isCreating ? "Creating..." : "Add Program"}
+						Add Program
 					</button>
 				</div>
 			</div>
@@ -274,7 +277,6 @@ const Programs: React.FC = () => {
 					</span>
 				</div>
 
-				{/* Status Messages */}
 				{isLoading && <p className="text-gray-500">Loading programs...</p>}
 				{error && <p className="text-red-500">{error}</p>}
 
@@ -293,7 +295,6 @@ const Programs: React.FC = () => {
 							? new Date(program.createdAt.seconds * 1000).toLocaleDateString()
 							: new Date(program.createdAt as string).toLocaleDateString();
 
-						// FIXED: Changed _deadline to deadline
 						const due = program._deadline
 							? new Date(program._deadline).toLocaleDateString()
 							: "TBA";
@@ -306,7 +307,8 @@ const Programs: React.FC = () => {
 								subtitle={program.category}
 								startDate={start}
 								dueDate={due}
-								applicationCount="0"
+								applicationCount={program.applicationCount || "0"}
+								onDelete={handleDeleteProgram} // <-- PASS FUNCTION TO CARD
 							/>
 						);
 					})}
