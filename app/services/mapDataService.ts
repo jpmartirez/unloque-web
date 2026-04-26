@@ -45,9 +45,11 @@ export const updateMapData = async (id: string, data: any) => {
 
 // Create new map data (For the "Add Data" button)
 export const createMapData = async (data: any) => {
+	// This creates a new document inside the "mapdata" collection
 	const docRef = await addDoc(collection(db, "mapdata"), {
 		...data,
-		updatedAt: serverTimestamp(),
+		updatedAt: serverTimestamp(), // Automatically saves the exact time it was created
 	});
+
 	return docRef.id;
 };

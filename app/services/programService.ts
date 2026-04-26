@@ -169,17 +169,6 @@ export const getOrganization = async (orgId: string) => {
 	return orgSnap.exists() ? orgSnap.data() : null;
 };
 
-export const getProgramsByStatus = async (
-	status: Program["programStatus"],
-): Promise<Program[]> => {
-	const q = query(
-		collectionGroup(db, COL),
-		where("programStatus", "==", status),
-	);
-	const snapshot = await getDocs(q);
-	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Program);
-};
-
 export const getProgramsByOrg = async (
 	organizationId: string,
 ): Promise<Program[]> => {

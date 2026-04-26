@@ -7,11 +7,12 @@ import {
 	updateNews,
 	type NewsItem,
 } from "@/app/services/programService";
+import { deleteNews } from "@/app/services/newsService";
 
 const EditNewsPage = () => {
 	const router = useRouter();
 	const params = useParams();
-	const newsId = params.id as string;
+	const newsId = params?.id as string;
 
 	const [newsData, setNewsData] = useState<Partial<NewsItem>>({
 		headline: "",
@@ -22,6 +23,8 @@ const EditNewsPage = () => {
 	});
 	const [isLoading, setIsLoading] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
+
+	const [isDeleting, setIsDeleting] = useState(false);
 
 	useEffect(() => {
 		const fetchNews = async () => {
@@ -75,6 +78,27 @@ const EditNewsPage = () => {
 				</div>
 			</div>
 		);
+
+	const handleDelete = async () => {
+		const confirmDelete = window.confirm(
+			"Are you sure you want to delete this news article? This cannot be undone.",
+		);
+		if (!confirmDelete) return;
+
+		const orgId = localStorage.getItem("userOrgId");
+		if (!orgId) return;
+
+		setIsDeleting(true);
+
+		try {
+			await deleteNews(orgId, newsId);
+			router.push("/news"); // Redirect after deleting
+		} catch (error) {
+			console.error("Error deleting news:", error);
+			alert("Failed to delete news.");
+			setIsDeleting(false);
+		}
+	};
 
 	return (
 		<div className="flex flex-col min-h-screen bg-[#f5f6f8] p-8 font-sans items-center">
@@ -203,7 +227,14 @@ const EditNewsPage = () => {
 				</div>
 
 				{/* Save Button */}
-				<div className="flex justify-end mt-8">
+				<div className="flex justify-end items-center gap-3 mt-8">
+					<button
+						onClick={handleDelete}
+						disabled={isDeleting || isSaving}
+						className={`bg-white border-2 border-red-600 text-red-600 hover:bg-red-50 text-sm font-bold py-3.5 px-10 rounded-full transition-colors ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
+					>
+						{isDeleting ? "Deleting..." : "Delete News"}
+					</button>
 					<button
 						onClick={handleSave}
 						disabled={isSaving}

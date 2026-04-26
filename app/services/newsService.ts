@@ -70,6 +70,7 @@ export const updateNews = async (
 	await updateDoc(doc(db, COL, id), data);
 };
 
-export const deleteNews = async (id: string): Promise<void> => {
-	await deleteDoc(doc(db, COL, id));
+export const deleteNews = async (orgId: string, newsId: string) => {
+	const docRef = doc(db, "organizations", orgId, "news", newsId);
+	await deleteDoc(docRef);
 };

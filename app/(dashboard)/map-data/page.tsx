@@ -135,9 +135,12 @@ const MapDataDashboard = () => {
 							/>
 						</svg>
 					</button>
-					<button className="bg-black hover:bg-gray-800 text-white font-semibold py-2.5 px-8 rounded-full text-sm shadow-sm transition-colors">
+					<Link
+						href="/map-data/create"
+						className="bg-black hover:bg-gray-800 text-white font-semibold py-2.5 px-8 rounded-full text-sm shadow-sm transition-colors"
+					>
 						Add Data
-					</button>
+					</Link>
 				</div>
 			</div>
 

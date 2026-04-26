@@ -12,7 +12,7 @@ import type { Program } from "@/app/types/program";
 const ViewApplicationsPage = () => {
 	const router = useRouter();
 	const params = useParams();
-	const programId = params.programId as string;
+	const programId = params?.programId as string;
 
 	const [program, setProgram] = useState<Program | null>(null);
 	const [applications, setApplications] = useState<ApplicationWithUser[]>([]);
