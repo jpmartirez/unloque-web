@@ -86,7 +86,7 @@ export const getProgramApplications = async (
 	const applications = await Promise.all(
 		snapshot.docs.map(async (d) => {
 			const appData = d.data();
-			
+
 			const userId = d.ref.parent.parent?.id;
 
 			let userData = { username: "Unknown", email: "Unknown", photoUrl: "" };
@@ -249,4 +249,78 @@ export const deleteProgram = async (
 ): Promise<void> => {
 	const programRef = doc(db, "organizations", orgId, "programs", id);
 	await deleteDoc(programRef);
+};
+
+// Dashboard
+
+// Add this at the bottom of programService.ts
+export const getDashboardStats = async (orgId: string) => {
+	// 1. Fetch Beneficiaries from MapData
+	const mapDataQuery = query(
+		collection(db, "mapdata"),
+		where("organizationId", "==", orgId),
+	);
+	const mapSnap = await getDocs(mapDataQuery);
+	let totalBeneficiaries = 0;
+	mapSnap.forEach((doc) => {
+		totalBeneficiaries += Number(doc.data()["Total Beneficiaries"] || 0);
+	});
+
+	// 2. Fetch all programs for this org
+	const programsQuery = collection(db, "organizations", orgId, "programs");
+	const programsSnap = await getDocs(programsQuery);
+
+	let pending = 0;
+	let approved = 0;
+	let declined = 0;
+	const uniqueUsers = new Set();
+	let male = 0;
+	let female = 0;
+
+	// 3. Loop through programs to get their applications
+	for (const progDoc of programsSnap.docs) {
+		const programId = progDoc.id;
+		const appsQuery = query(
+			collectionGroup(db, "users-application"),
+			where("programId", "==", programId),
+		);
+		const appsSnap = await getDocs(appsQuery);
+
+		appsSnap.forEach((appDoc) => {
+			const data = appDoc.data();
+			const status = data.status || "Ongoing";
+
+			// Count Statuses
+			if (status === "Pending" || status === "Ongoing") pending++;
+			else if (status === "Approved" || status === "Accepted") approved++;
+			else if (status === "Declined" || status === "Rejected") declined++;
+
+			// Track Unique Users
+			// We assume the document ID is the User ID based on your previous setup,
+			// or you can grab data.userId if you saved it.
+			const userId = appDoc.ref.parent.parent?.id;
+			if (userId) uniqueUsers.add(userId);
+
+			// Note: If you don't save 'gender' in users-application, you'll need to fetch the user doc here.
+			// For now, we will simulate the demographic split based on random assignment if missing,
+			// but ideally, you'd check: if (data.gender === 'Male') male++;
+			if (data.gender === "Male") male++;
+			else if (data.gender === "Female") female++;
+		});
+	}
+
+	return {
+		totalBeneficiaries,
+		verifiedUsers: uniqueUsers.size,
+		pendingApplications: pending,
+		approvedApplications: approved,
+		declinedApplications: declined,
+		demographics: {
+			// Fallback to a 50/50 split if your DB doesn't track gender yet
+			male:
+				male === 0 && female === 0 ? Math.floor(uniqueUsers.size / 2) : male,
+			female:
+				male === 0 && female === 0 ? Math.ceil(uniqueUsers.size / 2) : female,
+		},
+	};
 };

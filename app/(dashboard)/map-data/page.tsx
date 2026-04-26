@@ -89,7 +89,7 @@ const MapDataDashboard = () => {
 	return (
 		<div className="flex flex-col gap-8 pb-12 w-full max-w-6xl mx-auto p-8 font-sans">
 			<div>
-				<h1 className="text-4xl font-bold text-gray-900 mb-2">DOST Map Data</h1>
+				<h1 className="text-4xl font-bold text-gray-900 mb-2">Map Data</h1>
 				<p className="text-gray-600 text-sm font-medium">
 					View number of beneficiaries in Quezon Province.
 				</p>

@@ -63,16 +63,14 @@ const News: React.FC = () => {
 
 	useEffect(() => {
 		const fetchNews = async () => {
-			
 			const orgId = localStorage.getItem("userOrgId");
 
 			if (!orgId) {
 				setIsLoading(false);
-				return; 
+				return;
 			}
 
 			try {
-				
 				const data = await getNewsByOrg(orgId);
 				setNews(data);
 			} catch (error) {
@@ -97,7 +95,7 @@ const News: React.FC = () => {
 		<div className="flex flex-col gap-8 pb-12 w-full max-w-300">
 			{/* Header and Toolbar */}
 			<div>
-				<h1 className="text-4xl font-bold text-gray-900 mb-2">DOST News</h1>
+				<h1 className="text-4xl font-bold text-gray-900 mb-2">News</h1>
 				<p className="text-gray-600 text-sm font-medium">
 					Publish recent news articles relating to your organization.
 				</p>
@@ -128,9 +126,12 @@ const News: React.FC = () => {
 				</div>
 
 				<div className="flex items-center gap-3 shrink-0">
-					<button className="bg-black hover:bg-gray-800 text-white font-semibold py-2.5 px-10 rounded-full text-sm transition-colors shadow-sm">
+					<Link
+						href="/news/create" // Adjust this URL if your folder structure is different
+						className="bg-black hover:bg-gray-800 text-white font-semibold py-2.5 px-10 rounded-full text-sm transition-colors shadow-sm"
+					>
 						Create News
-					</button>
+					</Link>
 				</div>
 			</div>
 

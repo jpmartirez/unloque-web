@@ -1,16 +1,104 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import StatCard from "./StatCard";
+import {
+	getDashboardStats,
+	getOrganization,
+} from "@/app/services/programService";
 
 const Dashboard: React.FC = () => {
+	const [isLoading, setIsLoading] = useState(true);
+	const [orgName, setOrgName] = useState("Admin");
+	const [stats, setStats] = useState({
+		totalBeneficiaries: 0,
+		verifiedUsers: 0,
+		pendingApplications: 0,
+		approvedApplications: 0,
+		declinedApplications: 0,
+		demographics: { male: 0, female: 0 },
+	});
+
+	useEffect(() => {
+		const fetchDashboardData = async () => {
+			const orgId = localStorage.getItem("userOrgId");
+			if (!orgId) return;
+
+			try {
+				// Fetch Org Name
+				const orgData = await getOrganization(orgId);
+				if (orgData?.name) setOrgName(orgData.name);
+
+				// Fetch Aggregated Stats
+				const dashboardStats = await getDashboardStats(orgId);
+				setStats(dashboardStats);
+			} catch (error) {
+				console.error("Failed to fetch dashboard stats", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchDashboardData();
+	}, []);
+
+	// --- Dynamic Chart Calculations ---
+	const totalApps =
+		stats.pendingApplications +
+		stats.approvedApplications +
+		stats.declinedApplications;
+
+	// Calculate percentages for the Progress Chart (default to gray if 0)
+	const approvedPct =
+		totalApps === 0
+			? 0
+			: Math.round((stats.approvedApplications / totalApps) * 100);
+	const pendingPct =
+		totalApps === 0
+			? 0
+			: Math.round((stats.pendingApplications / totalApps) * 100);
+	const declinedPct =
+		totalApps === 0
+			? 0
+			: Math.round((stats.declinedApplications / totalApps) * 100);
+
+	const progressGradient =
+		totalApps === 0
+			? "conic-gradient(#e5e7eb 0% 100%)"
+			: `conic-gradient(#5ce1e6 0% ${approvedPct}%, #00d2ff ${approvedPct}% ${approvedPct + pendingPct}%, #c8f5f6 ${approvedPct + pendingPct}% 100%)`;
+
+	// Calculate percentages for the Demographics Chart
+	const totalPeople = stats.demographics.male + stats.demographics.female;
+	const malePct =
+		totalPeople === 0
+			? 0
+			: Math.round((stats.demographics.male / totalPeople) * 100);
+	const femalePct =
+		totalPeople === 0
+			? 0
+			: Math.round((stats.demographics.female / totalPeople) * 100);
+
+	const demoGradient =
+		totalPeople === 0
+			? "conic-gradient(#e5e7eb 0% 100%)"
+			: `conic-gradient(#ff0000 0% ${malePct}%, #ff8a8a ${malePct}% 100%)`;
+
+	if (isLoading)
+		return (
+			<div className="p-10 font-medium text-gray-500 animate-pulse">
+				Loading Dashboard Data...
+			</div>
+		);
+
 	return (
-		<div className="flex flex-col gap-8 pb-12">
+		<div className="flex flex-col gap-8 pb-12 font-sans">
 			{/* Welcome Header */}
 			<div>
 				<h1 className="text-4xl font-bold text-gray-900 mb-2">
-					Welcome! Admin
+					Welcome! {orgName}
 				</h1>
-				<p className="text-gray-600">
-					Monitor social welfare metrics and track regional development progress
+				<p className="text-gray-600 font-medium">
+					Monitor your programs metrics and track regional development progress
 					across Quezon Province.
 				</p>
 			</div>
@@ -21,29 +109,28 @@ const Dashboard: React.FC = () => {
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 				<StatCard
 					title="Total Beneficiaries"
-					value="123,453"
+					value={stats.totalBeneficiaries.toLocaleString()}
 					iconColor="bg-[#00abc0]"
 				/>
 				<StatCard
 					title="No. Verified Users"
-					value="107,207"
+					value={stats.verifiedUsers.toLocaleString()}
 					iconColor="bg-[#00abc0]"
 				/>
 				<StatCard
 					title="Pending Applications"
-					value="200,896"
+					value={stats.pendingApplications.toLocaleString()}
 					iconColor="bg-[#00abc0]"
-					isAlert={true}
+					isAlert={stats.pendingApplications > 0} // Only alert if there's actually pending apps!
 				/>
 			</div>
 
 			{/* Charts Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 				{/* Application Progress Chart Card */}
-				<div className="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col">
-					<div className="flex items-center gap-3 mb-8">
-						<div className="w-8 h-8 rounded bg-[#00abc0] text-white flex items-center justify-center">
-							{/* Spinner icon placeholder */}
+				<div className="bg-white rounded-3xl p-8 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col border border-gray-100">
+					<div className="flex items-center gap-4 mb-8">
+						<div className="w-10 h-10 rounded-xl bg-[#00abc0] text-white flex items-center justify-center shadow-sm">
 							<svg
 								className="w-5 h-5"
 								fill="none"
@@ -58,30 +145,45 @@ const Dashboard: React.FC = () => {
 								/>
 							</svg>
 						</div>
-						<h3 className="text-gray-500 font-medium">
+						<h3 className="text-gray-500 font-bold text-sm uppercase tracking-wider leading-tight">
 							Application
 							<br />
 							Progress
 						</h3>
 					</div>
 
-					<div className="flex-1 flex justify-center items-center">
-						{/* CSS Pie Chart using conic-gradient */}
+					<div className="flex-1 flex justify-center items-center gap-8">
+						{/* Dynamic Pie Chart */}
 						<div
-							className="w-48 h-48 rounded-full"
-							style={{
-								background:
-									"conic-gradient(#5ce1e6 0% 20%, #00d2ff 20% 55%, #c8f5f6 55% 100%)",
-							}}
-						></div>
+							className="w-40 h-40 rounded-full shadow-inner relative flex items-center justify-center"
+							style={{ background: progressGradient }}
+						>
+							{/* Inner white circle to make it a donut chart (optional, remove if you want a full pie) */}
+							<div className="w-20 h-20 bg-white rounded-full"></div>
+						</div>
+
+						{/* Dynamic Legend */}
+						<div className="flex flex-col gap-3">
+							<div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+								<div className="w-3 h-3 rounded-full bg-[#5ce1e6]"></div>
+								Approved ({approvedPct}%)
+							</div>
+							<div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+								<div className="w-3 h-3 rounded-full bg-[#00d2ff]"></div>
+								Pending ({pendingPct}%)
+							</div>
+							<div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+								<div className="w-3 h-3 rounded-full bg-[#c8f5f6]"></div>
+								Declined ({declinedPct}%)
+							</div>
+						</div>
 					</div>
 				</div>
 
 				{/* Demographics Chart Card */}
-				<div className="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col">
-					<div className="flex items-center gap-3 mb-8">
-						<div className="w-8 h-8 rounded bg-[#00abc0] text-white flex items-center justify-center">
-							{/* Gender icon placeholder */}
+				<div className="bg-white rounded-3xl p-8 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col border border-gray-100">
+					<div className="flex items-center gap-4 mb-8">
+						<div className="w-10 h-10 rounded-xl bg-[#00abc0] text-white flex items-center justify-center shadow-sm">
 							<svg
 								className="w-5 h-5"
 								fill="none"
@@ -96,21 +198,31 @@ const Dashboard: React.FC = () => {
 								/>
 							</svg>
 						</div>
-						<h3 className="text-gray-500 font-medium">
+						<h3 className="text-gray-500 font-bold text-sm uppercase tracking-wider leading-tight">
 							Demographics of
 							<br />
 							Applicants
 						</h3>
 					</div>
 
-					<div className="flex-1 flex justify-center items-center">
-						{/* CSS Pie Chart using conic-gradient */}
+					<div className="flex-1 flex justify-center items-center gap-8">
+						{/* Dynamic Pie Chart */}
 						<div
-							className="w-48 h-48 rounded-full"
-							style={{
-								background: "conic-gradient(#ff8a8a 0% 43%, #ff0000 43% 100%)",
-							}}
+							className="w-40 h-40 rounded-full shadow-inner"
+							style={{ background: demoGradient }}
 						></div>
+
+						{/* Dynamic Legend */}
+						<div className="flex flex-col gap-3">
+							<div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+								<div className="w-3 h-3 rounded-full bg-[#ff0000]"></div>
+								Male ({malePct}%)
+							</div>
+							<div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+								<div className="w-3 h-3 rounded-full bg-[#ff8a8a]"></div>
+								Female ({femalePct}%)
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

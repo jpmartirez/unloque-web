@@ -10,6 +10,7 @@ import {
 	query,
 	where,
 	orderBy,
+	serverTimestamp,
 } from "firebase/firestore";
 import type { News } from "@/app/types/news";
 
@@ -46,9 +47,20 @@ export const getNewsArticle = async (id: string): Promise<News | null> => {
 	return snap.exists() ? ({ id: snap.id, ...snap.data() } as News) : null;
 };
 
-export const createNews = async (data: Omit<News, "id">): Promise<string> => {
-	const ref = await addDoc(collection(db, COL), data);
-	return ref.id;
+// Function to create a new news article
+export const createNews = async (
+	orgId: string,
+	data: Partial<NewsItem & { programId: string }>,
+): Promise<string> => {
+	// Point directly to organizations/{orgId}/news
+	const newsRef = collection(db, "organizations", orgId, "news");
+
+	const docRef = await addDoc(newsRef, {
+		...data,
+		createdAt: serverTimestamp(),
+	});
+
+	return docRef.id;
 };
 
 export const updateNews = async (
