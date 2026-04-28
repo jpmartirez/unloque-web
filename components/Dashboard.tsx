@@ -113,7 +113,7 @@ const Dashboard: React.FC = () => {
 					iconColor="bg-[#00abc0]"
 				/>
 				<StatCard
-					title="No. Verified Users"
+					title="No. Completed Applicants"
 					value={stats.verifiedUsers.toLocaleString()}
 					iconColor="bg-[#00abc0]"
 				/>
