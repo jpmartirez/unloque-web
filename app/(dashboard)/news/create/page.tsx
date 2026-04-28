@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { createNews } from "@/app/services/newsService";
 import { getProgramsByOrg } from "@/app/services/programService";
 import type { Program } from "@/app/types/program";
+import { PROGRAM_CATEGORIES } from "@/app/constants/categories";
 
 const CreateNewsPage = () => {
 	const router = useRouter();
 
 	// Form State
 	const [headline, setHeadline] = useState("");
-	const [category, setCategory] = useState("Education");
+	const [category, setCategory] = useState(PROGRAM_CATEGORIES[0]);
 	const [date, setDate] = useState("");
 	const [imageUrl, setImageUrl] = useState("");
 	const [newsUrl, setNewsUrl] = useState("");
@@ -132,10 +133,11 @@ const CreateNewsPage = () => {
 										onChange={(e) => setCategory(e.target.value)}
 										className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm appearance-none bg-transparent focus:outline-none focus:ring-2 focus:ring-[#00abc0] cursor-pointer"
 									>
-										<option value="Education">Education</option>
-										<option value="Health">Health</option>
-										<option value="Research">Research</option>
-										<option value="Healthcare">Healthcare</option>
+										{PROGRAM_CATEGORIES.map((opt) => (
+											<option key={opt} value={opt}>
+												{opt}
+											</option>
+										))}
 									</select>
 									<div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400">
 										<svg
