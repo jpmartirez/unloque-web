@@ -4,7 +4,7 @@ import {
 	doc,
 	getDocs,
 	getDoc,
-	addDoc,
+	setDoc,
 	updateDoc,
 	deleteDoc,
 	serverTimestamp,
@@ -12,7 +12,6 @@ import {
 	where,
 	collectionGroup,
 	getCountFromServer,
-	FieldPath,
 } from "firebase/firestore";
 import type { Program } from "@/app/types/program";
 
@@ -26,19 +25,66 @@ export interface NewsItem {
 	date: string;
 	imageUrl: string;
 	newsUrl: string;
-	createdAt?: any;
+	createdAt?: unknown;
 }
 
 export interface ApplicationWithUser {
 	applicationId: string;
 	programId: string;
 	status: string;
-	createdAt: any;
+	createdAt: unknown;
 	userId: string;
 	username: string;
 	email: string;
 	photoUrl: string;
 }
+
+const isHexColor = (value: unknown): value is string => {
+	if (typeof value !== "string") return false;
+	return /^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(value);
+};
+
+const normalizeHexColor = (hex: string): string => {
+	const value = hex.trim();
+	if (value.length === 4) {
+		return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+	}
+	return value;
+};
+
+const toArgbIntFromHex = (hex: string): number => {
+	const normalized = normalizeHexColor(hex).replace("#", "");
+	const rgb = Number.parseInt(normalized, 16);
+	return (0xff000000 | rgb) >>> 0;
+};
+
+const normalizeProgramStatus = (value: unknown): "Open" | "Closed" => {
+	return String(value) === "Open" ? "Open" : "Closed";
+};
+
+const normalizeProgramWritePayload = (
+	data: Record<string, unknown>,
+): Record<string, unknown> => {
+	const next = { ...data };
+
+	if ("programStatus" in next) {
+		next.programStatus = normalizeProgramStatus(next.programStatus);
+	}
+
+	if ("color" in next) {
+		const color = next.color;
+		if (typeof color === "number" && Number.isFinite(color)) {
+			next.color = color;
+		} else if (isHexColor(color)) {
+			next.color = toArgbIntFromHex(color);
+		} else if (typeof color === "string" && color.startsWith("0x")) {
+			const parsed = Number.parseInt(color);
+			if (Number.isFinite(parsed)) next.color = parsed;
+		}
+	}
+
+	return next;
+};
 
 // Add these functions to programService.ts
 
@@ -78,29 +124,39 @@ export const getProgramApplications = async (
 	// 1. Fetch all applications matching the programId
 	const q = query(
 		collectionGroup(db, "users-application"),
-		where("programId", "==", programId),
+		where("id", "==", programId),
 	);
 	const snapshot = await getDocs(q);
 
 	// 2. Loop through and fetch the user details for each application
 	const applications = await Promise.all(
 		snapshot.docs.map(async (d) => {
-			const appData = d.data();
+			const appData = d.data() as Record<string, unknown>;
 
 			const userId = d.ref.parent.parent?.id;
 
-			let userData = { username: "Unknown", email: "Unknown", photoUrl: "" };
+			let userData: { username?: string; email?: string; photoUrl?: string } = {
+				username: "Unknown",
+				email: "Unknown",
+				photoUrl: "",
+			};
 
 			if (userId) {
 				const userDoc = await getDoc(doc(db, "users", userId));
 				if (userDoc.exists()) {
-					userData = userDoc.data() as any;
+					const raw = userDoc.data() as Record<string, unknown>;
+					userData = {
+						username:
+							typeof raw.username === "string" ? raw.username : "Unknown",
+						email: typeof raw.email === "string" ? raw.email : "Unknown",
+						photoUrl: typeof raw.photoUrl === "string" ? raw.photoUrl : "",
+					};
 				}
 			}
 
 			return {
 				applicationId: d.id,
-				programId: appData.programId,
+				programId: appData.id || programId,
 				status: appData.status || "Ongoing",
 				createdAt: appData.createdAt,
 				userId: userId || "",
@@ -121,8 +177,7 @@ export const getApplicationCountForProgram = async (
 		// Search every "users-application" folder across ALL users
 		const q = query(
 			collectionGroup(db, "users-application"),
-
-			where("programId", "==", programId),
+			where("id", "==", programId),
 		);
 
 		// Count the results securely and cheaply on the server
@@ -158,7 +213,10 @@ export const updateNews = async (
 export const getPrograms = async (): Promise<Program[]> => {
 	// collectionGroup tells Firebase to search EVERY folder named "programs"
 	const snapshot = await getDocs(collectionGroup(db, COL));
-	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Program);
+	return snapshot.docs.map((d) => {
+		const data = d.data() as unknown as Omit<Program, "id">;
+		return { ...data, id: d.id } as Program;
+	});
 };
 
 // Add this at the bottom of programService.ts
@@ -180,7 +238,10 @@ export const getProgramsByOrg = async (
 		"programs",
 	);
 	const snapshot = await getDocs(orgProgramsRef);
-	return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Program);
+	return snapshot.docs.map((d) => {
+		const data = d.data() as unknown as Omit<Program, "id">;
+		return { ...data, id: d.id } as Program;
+	});
 };
 
 export const getProgram = async (id: string): Promise<Program | null> => {
@@ -192,9 +253,9 @@ export const getProgram = async (id: string): Promise<Program | null> => {
 	const matchedDoc = snapshot.docs.find((d) => d.id === id);
 
 	// 3. Return it if found, otherwise return null
-	return matchedDoc
-		? ({ id: matchedDoc.id, ...matchedDoc.data() } as Program)
-		: null;
+	if (!matchedDoc) return null;
+	const data = matchedDoc.data() as unknown as Omit<Program, "id">;
+	return { ...data, id: matchedDoc.id } as Program;
 };
 
 // ─── WRITE OPERATIONS ────────────────────────────────────────
@@ -210,12 +271,19 @@ export const createProgram = async (
 		"programs",
 	);
 
-	const ref = await addDoc(orgProgramsRef, {
+	// Create the doc ID first so we can also store the duplicate `id` field.
+	const programRef = doc(orgProgramsRef);
+	const payload = normalizeProgramWritePayload({
 		...data,
+		id: programRef.id,
+		// Match the mobile app schema: createdAt is set on create.
 		createdAt: serverTimestamp(),
-		lastUpdated: serverTimestamp(),
+		// Ensure status is always Open/Closed (no Draft in persisted docs).
+		programStatus: normalizeProgramStatus(data.programStatus),
 	});
-	return ref.id;
+
+	await setDoc(programRef, payload);
+	return programRef.id;
 };
 
 export const updateProgram = async (
@@ -227,7 +295,7 @@ export const updateProgram = async (
 	const programRef = doc(db, "organizations", orgId, "programs", id);
 
 	await updateDoc(programRef, {
-		...data,
+		...normalizeProgramWritePayload(data as unknown as Record<string, unknown>),
 		lastUpdated: serverTimestamp(),
 	});
 };
@@ -271,7 +339,7 @@ export const getDashboardStats = async (orgId: string) => {
 		const programId = progDoc.id;
 		const appsQuery = query(
 			collectionGroup(db, "users-application"),
-			where("programId", "==", programId),
+			where("id", "==", programId),
 		);
 		const appsSnap = await getDocs(appsQuery);
 

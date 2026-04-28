@@ -8,6 +8,7 @@ import {
 	type NewsItem,
 } from "@/app/services/programService";
 import { deleteNews } from "@/app/services/newsService";
+import { PROGRAM_CATEGORIES } from "@/app/constants/categories";
 
 const EditNewsPage = () => {
 	const router = useRouter();
@@ -16,7 +17,7 @@ const EditNewsPage = () => {
 
 	const [newsData, setNewsData] = useState<Partial<NewsItem>>({
 		headline: "",
-		category: "Education",
+		category: PROGRAM_CATEGORIES[0],
 		date: "",
 		imageUrl: "",
 		newsUrl: "",
@@ -156,10 +157,11 @@ const EditNewsPage = () => {
 										onChange={handleChange}
 										className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm appearance-none bg-transparent focus:outline-none focus:ring-2 focus:ring-[#00abc0] cursor-pointer"
 									>
-										<option value="Education">Education</option>
-										<option value="Health">Health</option>
-										<option value="Research">Research</option>
-										<option value="Healthcare">Healthcare</option>
+										{PROGRAM_CATEGORIES.map((opt) => (
+											<option key={opt} value={opt}>
+												{opt}
+											</option>
+										))}
 									</select>
 									<div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400">
 										<svg

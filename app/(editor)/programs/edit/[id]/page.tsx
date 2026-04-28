@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
 	getOrganization,
@@ -23,6 +23,7 @@ import {
 	ref,
 	uploadBytesResumable,
 } from "firebase/storage";
+import { PROGRAM_CATEGORIES } from "@/app/constants/categories";
 
 type TabKey = "basic" | "details" | "form";
 
@@ -34,6 +35,17 @@ const formatTypeLabel = (type: string) =>
 
 const safeArray = <T,>(value: unknown, fallback: T[] = []): T[] =>
 	Array.isArray(value) ? (value as T[]) : fallback;
+
+const toOrgDisplay = (
+	value: unknown,
+): { name?: string; logoUrl?: string } | null => {
+	if (!value || typeof value !== "object") return null;
+	const record = value as Record<string, unknown>;
+	return {
+		name: typeof record.name === "string" ? record.name : undefined,
+		logoUrl: typeof record.logoUrl === "string" ? record.logoUrl : undefined,
+	};
+};
 
 const hexFromArgbInt = (value: number): string => {
 	const rgb = value & 0x00ffffff;
@@ -110,7 +122,7 @@ const BasicEditorTab = ({
 	onChange: (patch: Partial<Program>) => void;
 	onToggleStatus: () => void;
 }) => {
-	const status = String(program.programStatus || "Draft");
+	const status = String(program.programStatus) === "Open" ? "Open" : "Closed";
 	const isOpen = status === "Open";
 
 	return (
@@ -188,13 +200,14 @@ const BasicEditorTab = ({
 					<div className="relative w-full md:max-w-md">
 						<select
 							className="w-full border border-gray-400 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#00abc0] bg-transparent text-gray-800 text-sm cursor-pointer"
-							value={program.category || "Education"}
+							value={program.category || PROGRAM_CATEGORIES[0]}
 							onChange={(e) => onChange({ category: e.target.value })}
 						>
-							<option value="Education">Education</option>
-							<option value="Health">Health</option>
-							<option value="Healthcare">Healthcare</option>
-							<option value="Research">Research</option>
+							{PROGRAM_CATEGORIES.map((opt) => (
+								<option key={opt} value={opt}>
+									{opt}
+								</option>
+							))}
 						</select>
 						<div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
 							<svg
@@ -560,7 +573,10 @@ const DetailsEditorTab = ({
 											onChange={(e) => {
 												const items = [...section.items];
 												items[itemIndex] = e.target.value;
-												updateSection(index, { items } as any);
+												updateSection(
+													index,
+													{ items } as Partial<ProgramDetailSection>,
+												);
 											}}
 											className="flex-1 border border-gray-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00abc0]"
 											placeholder="List item"
@@ -570,7 +586,10 @@ const DetailsEditorTab = ({
 											onClick={() => {
 												const items = [...section.items];
 												items.splice(itemIndex, 1);
-												updateSection(index, { items } as any);
+												updateSection(
+													index,
+													{ items } as Partial<ProgramDetailSection>,
+												);
 											}}
 											className="px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold hover:bg-red-100"
 											disabled={section.items.length <= 1}
@@ -585,7 +604,7 @@ const DetailsEditorTab = ({
 									onClick={() => {
 										updateSection(index, {
 											items: [...section.items, "Enter an item"],
-										} as any);
+									} as Partial<ProgramDetailSection>);
 									}}
 									className="w-fit text-sm font-bold text-[#00abc0] hover:text-black"
 								>
@@ -985,16 +1004,20 @@ const ProgramEditor = () => {
 	} | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
-	const originalColorWasNumber = useRef(false);
 
 	const params = useParams();
 	const router = useRouter();
+<<<<<<< HEAD
 	const programId = params?.id as string;
 
 	const title = useMemo(
 		() => (program?.name?.trim() ? program.name : "Untitled Program"),
 		[program?.name],
 	);
+=======
+	const programId = params.id as string;
+	const title = program?.name?.trim() ? program.name : "Untitled Program";
+>>>>>>> 0993b250c74f37f4ce6140e260d187b6cfd478f7
 
 	const updateDraft = (patch: Partial<Program>) => {
 		setProgram((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -1003,7 +1026,7 @@ const ProgramEditor = () => {
 	const toggleStatus = () => {
 		setProgram((prev) => {
 			if (!prev) return prev;
-			const current = String(prev.programStatus || "Draft");
+			const current = String(prev.programStatus) === "Open" ? "Open" : "Closed";
 			const next = current === "Open" ? "Closed" : "Open";
 			const ok = window.confirm(
 				current === "Open"
@@ -1024,16 +1047,13 @@ const ProgramEditor = () => {
 
 		setIsSaving(true);
 		try {
-			const colorValue = originalColorWasNumber.current
-				? toArgbIntFromHex(toColorInput(program.color))
-				: toColorInput(program.color);
-
 			await updateProgram(program.organizationId, programId, {
 				name: program.name,
 				category: program.category,
 				deadline: program.deadline,
-				color: colorValue,
-				programStatus: program.programStatus,
+				color: toArgbIntFromHex(toColorInput(program.color)),
+				programStatus:
+					String(program.programStatus) === "Open" ? "Open" : "Closed",
 				detailSections: safeArray(program.detailSections),
 				formFields: safeArray(program.formFields),
 				organizationId: program.organizationId,
@@ -1053,23 +1073,25 @@ const ProgramEditor = () => {
 			try {
 				const data = await getProgram(programId);
 				if (data) {
+<<<<<<< HEAD
 					originalColorWasNumber.current =
 						typeof (data as any).color === "number";
+=======
+>>>>>>> 0993b250c74f37f4ce6140e260d187b6cfd478f7
 					const normalized: Program = {
 						...data,
-						deadline: (data as any).deadline || "",
-						color: toColorInput((data as any).color),
-						programStatus: (data as any).programStatus || "Draft",
-						detailSections: safeArray<ProgramDetailSection>(
-							(data as any).detailSections,
-						),
-						formFields: safeArray<ProgramFormField>((data as any).formFields),
+						deadline: typeof data.deadline === "string" ? data.deadline : "",
+						color: toColorInput(data.color),
+						programStatus:
+							String(data.programStatus) === "Open" ? "Open" : "Closed",
+						detailSections: safeArray<ProgramDetailSection>(data.detailSections),
+						formFields: safeArray<ProgramFormField>(data.formFields),
 					};
 					setProgram(normalized);
 
 					if (normalized.organizationId) {
 						const org = await getOrganization(normalized.organizationId);
-						setOrganization(org as any);
+						setOrganization(toOrgDisplay(org));
 					}
 				} else {
 					setProgram(null);

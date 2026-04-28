@@ -3,13 +3,15 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProgram } from "@/app/services/programService";
+import type { Program } from "@/app/types/program";
+import { PROGRAM_CATEGORIES } from "@/app/constants/categories";
 
 const CreateProgramPage = () => {
 	const router = useRouter();
 
 	// Form State
 	const [name, setName] = useState("");
-	const [category, setCategory] = useState("Education");
+	const [category, setCategory] = useState(PROGRAM_CATEGORIES[0]);
 	const [deadline, setDeadline] = useState("");
 	const [color, setColor] = useState("#00abc0"); // Default DOST Teal
 	const [isCreating, setIsCreating] = useState(false);
@@ -32,13 +34,13 @@ const CreateProgramPage = () => {
 			}
 
 			// Structure the data based on your database requirements
-			const newProgramData: any = {
+			const newProgramData: Omit<Program, "id" | "createdAt" | "lastUpdated"> = {
 				name: name,
 				category: category,
 				deadline: deadline, // Saved as string (YYYY-MM-DD)
 				color: color,
 				organizationId: userOrgId, // Tied securely to their organization!
-				programStatus: "Draft", // New programs start as drafts
+				programStatus: "Closed", // Stored as Open/Closed in Firestore
 				formFields: [],
 				detailSections: [],
 			};
@@ -130,10 +132,11 @@ const CreateProgramPage = () => {
 								onChange={(e) => setCategory(e.target.value)}
 								className="w-full border border-gray-400 rounded-xl px-4 py-3 text-sm appearance-none bg-transparent focus:outline-none focus:ring-2 focus:ring-[#00abc0] cursor-pointer"
 							>
-								<option value="Education">Education</option>
-								<option value="Health">Health</option>
-								<option value="Research">Research</option>
-								<option value="Healthcare">Healthcare</option>
+								{PROGRAM_CATEGORIES.map((opt) => (
+									<option key={opt} value={opt}>
+										{opt}
+									</option>
+								))}
 							</select>
 							<div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-900">
 								<svg
