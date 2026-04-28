@@ -554,7 +554,7 @@ const DetailsEditorTab = ({
 
 						{section.type === "paragraph" && (
 							<textarea
-								className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800 min-h-35 resize-y"
+								className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800 min-h-[140px] resize-y"
 								value={section.content}
 								onChange={(e) =>
 									updateSection(index, { content: e.target.value })
@@ -573,10 +573,9 @@ const DetailsEditorTab = ({
 											onChange={(e) => {
 												const items = [...section.items];
 												items[itemIndex] = e.target.value;
-												updateSection(
-													index,
-													{ items } as Partial<ProgramDetailSection>,
-												);
+												updateSection(index, {
+													items,
+												} as Partial<ProgramDetailSection>);
 											}}
 											className="flex-1 border border-gray-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00abc0]"
 											placeholder="List item"
@@ -586,10 +585,9 @@ const DetailsEditorTab = ({
 											onClick={() => {
 												const items = [...section.items];
 												items.splice(itemIndex, 1);
-												updateSection(
-													index,
-													{ items } as Partial<ProgramDetailSection>,
-												);
+												updateSection(index, {
+													items,
+												} as Partial<ProgramDetailSection>);
 											}}
 											className="px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold hover:bg-red-100"
 											disabled={section.items.length <= 1}
@@ -604,7 +602,7 @@ const DetailsEditorTab = ({
 									onClick={() => {
 										updateSection(index, {
 											items: [...section.items, "Enter an item"],
-									} as Partial<ProgramDetailSection>);
+										} as Partial<ProgramDetailSection>);
 									}}
 									className="w-fit text-sm font-bold text-[#00abc0] hover:text-black"
 								>
@@ -1007,17 +1005,8 @@ const ProgramEditor = () => {
 
 	const params = useParams();
 	const router = useRouter();
-<<<<<<< HEAD
-	const programId = params?.id as string;
-
-	const title = useMemo(
-		() => (program?.name?.trim() ? program.name : "Untitled Program"),
-		[program?.name],
-	);
-=======
 	const programId = params.id as string;
 	const title = program?.name?.trim() ? program.name : "Untitled Program";
->>>>>>> 0993b250c74f37f4ce6140e260d187b6cfd478f7
 
 	const updateDraft = (patch: Partial<Program>) => {
 		setProgram((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -1073,18 +1062,15 @@ const ProgramEditor = () => {
 			try {
 				const data = await getProgram(programId);
 				if (data) {
-<<<<<<< HEAD
-					originalColorWasNumber.current =
-						typeof (data as any).color === "number";
-=======
->>>>>>> 0993b250c74f37f4ce6140e260d187b6cfd478f7
 					const normalized: Program = {
 						...data,
 						deadline: typeof data.deadline === "string" ? data.deadline : "",
 						color: toColorInput(data.color),
 						programStatus:
 							String(data.programStatus) === "Open" ? "Open" : "Closed",
-						detailSections: safeArray<ProgramDetailSection>(data.detailSections),
+						detailSections: safeArray<ProgramDetailSection>(
+							data.detailSections,
+						),
 						formFields: safeArray<ProgramFormField>(data.formFields),
 					};
 					setProgram(normalized);
