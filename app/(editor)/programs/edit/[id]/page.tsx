@@ -139,7 +139,9 @@ const BasicEditorTab = ({
 								className="w-full h-full object-cover"
 							/>
 						) : (
-							<span className="text-gray-700 font-bold">{(organization?.name || "O").slice(0, 1)}</span>
+							<span className="text-gray-700 font-bold">
+								{(organization?.name || "O").slice(0, 1)}
+							</span>
 						)}
 					</div>
 					<div className="flex-1">
@@ -170,7 +172,9 @@ const BasicEditorTab = ({
 
 			<div className="mt-6 bg-white rounded-3xl shadow-sm p-8 md:p-10 border border-gray-200 flex flex-col gap-6">
 				<div className="flex flex-col gap-2">
-					<label className="text-lg font-bold text-gray-900">Program Name</label>
+					<label className="text-lg font-bold text-gray-900">
+						Program Name
+					</label>
 					<input
 						type="text"
 						value={program.name || ""}
@@ -308,7 +312,10 @@ const DetailsEditorTab = ({
 		onChange(next);
 	};
 
-	const updateSection = (index: number, patch: Partial<ProgramDetailSection>) => {
+	const updateSection = (
+		index: number,
+		patch: Partial<ProgramDetailSection>,
+	) => {
 		const next = [...sections];
 		next[index] = { ...next[index], ...patch } as ProgramDetailSection;
 		onChange(next);
@@ -319,7 +326,9 @@ const DetailsEditorTab = ({
 		if (!section) return;
 
 		if (section.type === "attachment") {
-			const firebaseFiles = safeArray<ProgramAttachmentFile>(section.files).filter(
+			const firebaseFiles = safeArray<ProgramAttachmentFile>(
+				section.files,
+			).filter(
 				(f) => typeof f.downloadUrl === "string" && f.downloadUrl.length > 0,
 			);
 			if (firebaseFiles.length > 0) {
@@ -391,10 +400,7 @@ const DetailsEditorTab = ({
 		setUploadStatus("");
 	};
 
-	const removeAttachment = async (
-		sectionIndex: number,
-		fileIndex: number,
-	) => {
+	const removeAttachment = async (sectionIndex: number, fileIndex: number) => {
 		const section = sections[sectionIndex];
 		if (!section || section.type !== "attachment") return;
 		const files = safeArray<ProgramAttachmentFile>(section.files);
@@ -415,7 +421,10 @@ const DetailsEditorTab = ({
 		const nextFiles = [...files];
 		nextFiles.splice(fileIndex, 1);
 		const next = [...sections];
-		next[sectionIndex] = { ...section, files: nextFiles } as ProgramDetailSection;
+		next[sectionIndex] = {
+			...section,
+			files: nextFiles,
+		} as ProgramDetailSection;
 		onChange(next);
 	};
 
@@ -532,7 +541,7 @@ const DetailsEditorTab = ({
 
 						{section.type === "paragraph" && (
 							<textarea
-								className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800 min-h-[140px] resize-y"
+								className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800 min-h-35 resize-y"
 								value={section.content}
 								onChange={(e) =>
 									updateSection(index, { content: e.target.value })
@@ -600,9 +609,7 @@ const DetailsEditorTab = ({
 										<input
 											type="file"
 											multiple
-											onChange={(e) =>
-												void uploadFiles(index, e.target.files)
-											}
+											onChange={(e) => void uploadFiles(index, e.target.files)}
 											className="hidden"
 										/>
 										Manage Files
@@ -628,14 +635,14 @@ const DetailsEditorTab = ({
 													<button
 														type="button"
 														onClick={() =>
-														void removeAttachment(index, fileIndex)
-													}
+															void removeAttachment(index, fileIndex)
+														}
 														className="text-xs font-bold text-red-700 hover:text-red-900"
 													>
 														Remove
 													</button>
 												</div>
-										),
+											),
 										)}
 									</div>
 								)}
@@ -838,7 +845,9 @@ const FormEditorTab = ({
 								<input
 									type="text"
 									value={field.label || ""}
-									onChange={(e) => updateField(index, { label: e.target.value })}
+									onChange={(e) =>
+										updateField(index, { label: e.target.value })
+									}
 									className="w-full border border-gray-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00abc0] text-sm text-gray-800"
 									placeholder="Prompt text"
 								/>
@@ -846,7 +855,9 @@ const FormEditorTab = ({
 
 							<div className="flex items-center justify-between gap-4 flex-wrap">
 								<div className="flex items-center gap-3">
-									<label className="text-sm font-bold text-gray-900">Type</label>
+									<label className="text-sm font-bold text-gray-900">
+										Type
+									</label>
 									<select
 										value={field.type}
 										onChange={(e) => {
@@ -937,7 +948,9 @@ const FormEditorTab = ({
 					<div className="bg-white/90 backdrop-blur border border-gray-200 rounded-full px-4 py-3 flex items-center gap-3 shadow-sm">
 						<select
 							value={newType}
-							onChange={(e) => setNewType(e.target.value as ProgramFormFieldType)}
+							onChange={(e) =>
+								setNewType(e.target.value as ProgramFormFieldType)
+							}
 							className="border border-gray-300 rounded-full px-4 py-2 text-sm font-bold text-gray-800 bg-transparent"
 						>
 							<option value="short_answer">Short Answer</option>
@@ -976,7 +989,7 @@ const ProgramEditor = () => {
 
 	const params = useParams();
 	const router = useRouter();
-	const programId = params.id as string;
+	const programId = params?.id as string;
 
 	const title = useMemo(
 		() => (program?.name?.trim() ? program.name : "Untitled Program"),
@@ -1040,7 +1053,8 @@ const ProgramEditor = () => {
 			try {
 				const data = await getProgram(programId);
 				if (data) {
-					originalColorWasNumber.current = typeof (data as any).color === "number";
+					originalColorWasNumber.current =
+						typeof (data as any).color === "number";
 					const normalized: Program = {
 						...data,
 						deadline: (data as any).deadline || "",
